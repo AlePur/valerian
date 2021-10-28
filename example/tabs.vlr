@@ -1,0 +1,5 @@
+html:
+	body:
+		(Header
+			h1: "Welcome!"
+		)
