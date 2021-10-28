@@ -18,6 +18,9 @@ html:
                 h2: "Enter: "
                 form:
                     (type=email) -> input:
+                    h1:
+                        p: "Door"
+                i: "Goor"
             )
         )
 style:

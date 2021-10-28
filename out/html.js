@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var Html = /** @class */ (function () {
     function Html() {
         this.openTags = [];
-        this.indentLevel = 0;
+        this.indentLevel = -1;
     }
     Html.prototype.tag = function (name) {
         return "<" + name + ">";
@@ -14,18 +14,31 @@ var Html = /** @class */ (function () {
     Html.prototype.parse = function (line, indent) {
         var parsed = [];
         var parselength = 0;
-        if (indent <= this.indentLevel) {
+        if (indent <= this.indentLevel) { //FIX INDENT LEVEL ERRORS WITH PARANTHESIS
             var i = 0;
-            for (i = 0; i < ((1 + this.indentLevel) - indent); i++) {
+            for (i = 0; i <= ((this.indentLevel) - indent); i++) {
                 var oldtag = this.openTags.pop();
                 parsed[i] = this.closeTag(oldtag);
             }
             parselength = i;
         }
         this.indentLevel = indent;
-        var clean = line.slice(0, line.indexOf(":"));
-        parsed[parselength] = this.tag(clean);
-        this.openTags.push(clean);
+        if (line[0] == "(") {
+            parsed[parselength] = this.tag("div");
+            this.openTags.push("null");
+        }
+        else if (line[0] == ")") {
+            // Already closed
+            // parsed[parselength] = this.closeTag("div");
+            var oldparsed = parsed;
+            oldparsed.pop();
+            parsed = oldparsed;
+        }
+        else {
+            var clean = line.slice(0, line.indexOf(":"));
+            parsed[parselength] = this.tag(clean);
+            this.openTags.push(clean);
+        }
         return parsed;
     };
     return Html;

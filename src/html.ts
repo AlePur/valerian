@@ -4,7 +4,7 @@ export default class Html {
 
   constructor() {
     this.openTags = [];
-    this.indentLevel = 0;
+    this.indentLevel = -1;
   }
 
   tag(name: string): string {
@@ -18,18 +18,30 @@ export default class Html {
     let parsed = [];
     let parselength = 0;
 
-    if (indent <= this.indentLevel) {
+    if (indent <= this.indentLevel) {    //FIX INDENT LEVEL ERRORS WITH PARANTHESIS
       let i = 0;
-      for(i = 0; i < ((1 + this.indentLevel) - indent); i++) {
+      for(i = 0; i <= ((this.indentLevel) - indent); i++) {
         let oldtag = this.openTags.pop();
         parsed[i] = this.closeTag(oldtag);
       }
       parselength = i;
     }
     this.indentLevel = indent;
-    let clean = line.slice(0, line.indexOf(":"));
-    parsed[parselength] = this.tag(clean);
-    this.openTags.push(clean);
+
+    if (line[0] == "(") {
+      parsed[parselength] = this.tag("div");
+      this.openTags.push("null");
+    } else if (line[0] == ")") {
+      // Already closed
+      // parsed[parselength] = this.closeTag("div");
+      let oldparsed = parsed;
+      oldparsed.pop();
+      parsed = oldparsed
+    } else {
+      let clean = line.slice(0, line.indexOf(":"));
+      parsed[parselength] = this.tag(clean);
+      this.openTags.push(clean);
+    }
     return parsed;
   }
 }

@@ -57,7 +57,7 @@ console.log(
           process.exit();
         }
       }).on('close', () => {
-        writeFileSync(path.join("./dist", path.basename(filename, '.fr')) + ".html", compiled);
+        writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
       });
     }
 

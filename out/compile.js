@@ -49,11 +49,17 @@ var Compiler = /** @class */ (function () {
         switch (this.region) {
             case "html":
                 var parsed = this.htmlParser.parse(line, this.indentLevel);
-                console.log(parsed);
-                for (var i = 0; i < parsed.length; i++) {
-                    nline += "\t".repeat(this.indentLevel + (parsed.length - (i)));
-                    nline += parsed[i];
+                if (parsed.length == 1) {
+                    nline += "\t".repeat(this.indentLevel);
+                    nline += parsed[0];
                     nline += "\n";
+                }
+                else {
+                    for (var i = 0; i < parsed.length; i++) {
+                        nline += "\t".repeat(Math.max(this.indentLevel + ((parsed.length - 2) - i), this.indentLevel));
+                        nline += parsed[i];
+                        nline += "\n";
+                    }
                 }
                 break;
             default:

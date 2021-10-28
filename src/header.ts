@@ -1,4 +1,4 @@
-export const usage = `node index.js (fr file)/(src folder)`;
+export const usage = `node index.js <.vlr file or folder>`;
 export const errorHtml = `<html>
   <head>
     <title>

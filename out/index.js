@@ -58,7 +58,7 @@ console.log((function () {
                 process.exit();
             }
         }).on('close', function () {
-            (0, fs_1.writeFileSync)(path.join("./dist", path.basename(filename_1, '.fr')) + ".html", compiled_1);
+            (0, fs_1.writeFileSync)(path.join("./dist", path.basename(filename_1, '.vlr')) + ".html", compiled_1);
         });
     }
     return "Successfully compiled all files.";
