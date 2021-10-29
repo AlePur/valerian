@@ -51,7 +51,7 @@ var Compiler = /** @class */ (function () {
             switch (this.region) {
                 case "html":
                     var parsed = this.htmlParser.parse(line, this.indentLevel);
-                    //console.log(parsed)
+                    console.log(parsed);
                     if (parsed.error) {
                         return throwError(parsed.error, line, this.lineNumber);
                     }

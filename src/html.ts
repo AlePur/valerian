@@ -62,6 +62,8 @@ export default class Html {
     this.ignoreLastLine = false;
     this.indentLevel = indent;
 
+    const rawstr = getString(line)
+
     if (line[0] == "(") {
       let id = line.slice(1);
       parsed[parselength] = this.tag("div", { id });
@@ -70,6 +72,10 @@ export default class Html {
       // Already closed
       // parsed[parselength] = this.closeTag("div");
       this.ignoreLastLine = true;
+    } else if (rawstr != -1 && rawstr != -2) {
+      parsed[parselength] = rawstr;
+      this.ignoreLastLine = true;
+      this.openTags.push("");
     } else {
       error = (() => {
         let delimiter = line.indexOf(":");

@@ -52,6 +52,7 @@ var Html = /** @class */ (function () {
         }
         this.ignoreLastLine = false;
         this.indentLevel = indent;
+        var rawstr = getString(line);
         if (line[0] == "(") {
             var id = line.slice(1);
             parsed[parselength] = this.tag("div", { id: id });
@@ -61,6 +62,11 @@ var Html = /** @class */ (function () {
             // Already closed
             // parsed[parselength] = this.closeTag("div");
             this.ignoreLastLine = true;
+        }
+        else if (rawstr != -1 && rawstr != -2) {
+            parsed[parselength] = rawstr;
+            this.ignoreLastLine = true;
+            this.openTags.push("");
         }
         else {
             error = (function () {

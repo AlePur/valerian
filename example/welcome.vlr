@@ -18,7 +18,8 @@ html:
             (Form
                 h2: "Enter: "
                 form:
-                    (type=email) -> input:
+                    { type = email } -> input:
+                    input { type = email }:
                     h1:
                         p: "Door"
                 i: "Goor"
