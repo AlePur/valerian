@@ -8,7 +8,7 @@ var readline = require("readline");
 var path = require("path");
 var renderError = function (comerror, filename, console) {
     var err = (console ? console_1.default.FgBlack + console_1.default.BgRed : '') + "Failed:" + (console ? console_1.default.Reset : '');
-    err += "\n\t" + (console ? console_1.default.FgRed : '') + comerror.message + (console ? console_1.default.Reset : '') + "\n";
+    err += "\n\t" + (console ? console_1.default.FgRed : '') + comerror.message + ":" + (console ? console_1.default.Reset : '') + "\n";
     err += "\t" + comerror.line + " --> " + comerror.trace;
     err += "\n\t" + "~".repeat(4 + comerror.line.toString().length) + "\n";
     err += (console ? console_1.default.Underscore : '') + "\nOn line " + comerror.line + " in " + filename + (console ? console_1.default.Reset : '');
@@ -25,7 +25,29 @@ var logVerbose = function () {
     }
     console.log.apply(console, str);
 };
-console.log((function () {
+var compileFile = function (filename) {
+    var compiled = "";
+    var comp = new compile_1.default();
+    logVerbose("Compiling", filename, "...");
+    var readInterface = readline.createInterface({
+        input: (0, fs_1.createReadStream)(filename)
+    });
+    readInterface.on('line', function (line) {
+        var nline = comp.compile(line);
+        if (!compiledWithErrors(nline)) {
+            compiled += nline;
+        }
+        else {
+            console.log(renderError(nline, filename, true));
+            compiled = header_1.errorHtml.replace("$ERR", renderError(nline, filename, false));
+            readInterface.close();
+            process.exit();
+        }
+    }).on('close', function () {
+        (0, fs_1.writeFileSync)(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
+    });
+};
+(function () {
     var arg = process.argv.slice(2);
     if (!arg[0]) {
         return header_1.usage;
@@ -38,28 +60,17 @@ console.log((function () {
             return "Failed creating output directory: " + e.message;
         }
     }
+    var promiseList = [];
     if (!(0, fs_1.lstatSync)(arg[0]).isDirectory()) {
-        var filename_1 = arg[0];
-        var compiled_1 = "";
-        var comp_1 = new compile_1.default();
-        logVerbose("Compiling", filename_1, "...");
-        var readInterface_1 = readline.createInterface({
-            input: (0, fs_1.createReadStream)(filename_1)
-        });
-        readInterface_1.on('line', function (line) {
-            var nline = comp_1.compile(line);
-            if (!compiledWithErrors(nline)) {
-                compiled_1 += nline;
-            }
-            else {
-                console.log(renderError(nline, filename_1, true));
-                compiled_1 = header_1.errorHtml.replace("$ERR", renderError(nline, filename_1, false));
-                readInterface_1.close();
-                process.exit();
-            }
-        }).on('close', function () {
-            (0, fs_1.writeFileSync)(path.join("./dist", path.basename(filename_1, '.vlr')) + ".html", compiled_1);
+        promiseList[0] = compileFile(arg[0]);
+    }
+    else {
+        var files = (0, fs_1.readdirSync)(arg[0]);
+        files.forEach(function (file) {
+            promiseList.push(compileFile(path.join(arg[0], file)));
         });
     }
-    return "Successfully compiled all files.";
-})());
+    Promise.all(promiseList).then(function (values) {
+        console.log("Successfully compiled all files.");
+    });
+})();

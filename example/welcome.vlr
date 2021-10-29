@@ -1,4 +1,5 @@
 html:
+    mul: "dd"
     head:
         title: "Test website"
     body:
@@ -6,18 +7,19 @@ html:
             h1: "Welcome!"
         )
         (Content
-            (_
+            (
                 p: "Lorem ipsum"
             )
             i: "Dolor sit amet"
             @btn Button:
-                (_
+                (
                     "Click here!"
                 )
             (Form
                 h2: "Enter: "
                 form:
-                    (type=email) -> input:
+                    { type = email } -> input:
+                    input { type = email }:
                     h1:
                         p: "Door"
                 i: "Goor"
@@ -25,10 +27,10 @@ html:
         )
 style:
     Header.h1:
-        font-size: 10px
+    #    font-size: 10px
     Content:
         Form.h2:
-            color: red
+    #        color: red
         Form:
             form.input:
-                color: green;
+    #            color: green;
