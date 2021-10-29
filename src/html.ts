@@ -82,13 +82,14 @@ export default class Html {
       error = "Expected an indented block"
     }
     this.expectingBlock = false;
-    if ((indent <= this.indentLevel && !this.ignoreLine) || (indent < this.indentLevel && this.ignoreLine)) {
+    if (indent <= this.indentLevel) {
       let i = 0;
       let z = 1;
-      for(i = 0; i <= ((this.indentLevel) - indent); i++) {
+      for(i = 0; i <= ((this.indentLevel) - (indent + Number(this.ignoreLine))); i++) {
         const ind = (this.openTags.length - z);
         if (ind < 0) break;
         if (this.openTags[ind] == "_reserved") {
+          console.log(i)
           z++;
         } else if (this.openTags[ind] == "__reserved") {
           this.openTags.splice(ind, 1);

@@ -1,6 +1,8 @@
 html:
     head:
         title: "Test website"
+        (
+        )
     body:
         (Header
             h1: "Welcome!"
@@ -15,6 +17,8 @@ html:
                     "Click here!"
                 )
             (Form
+                (  
+                )
                 h2: "Enter: "
                 form:
                     { type = email } -> input
@@ -24,12 +28,3 @@ html:
                 i: "Goor"
             )
         )
-salacious:
-    Header.h1:
-        font-size: "10px"
-    Content:
-        Form.h2:
-            color: "red"
-        Form:
-            form.input:
-                color: "green"
