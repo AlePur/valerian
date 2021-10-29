@@ -23,35 +23,51 @@ const logVerbose = (...str: string[]): void => {
   console.log(...str);
 };
 
-const compileFile = (filename: string) => {
-  let compiled = "";
-  const comp = new Compiler();
-  logVerbose("Compiling", filename, "...");
+const compileFile = (filename: string): Promise<void> => {
+  return new Promise((resolve) => {
+    let alreadyfailed = 0;
+    let compiled = "";
+    const comp = new Compiler();
+    logVerbose("Compiling", filename, "...");
 
-  const readInterface = readline.createInterface({
-    input: createReadStream(filename)
-  });
+    const readInterface = readline.createInterface({
+      input: createReadStream(filename)
+    });
 
-  readInterface.on('line', (line) => {
-    const nline = comp.compile(line);
-    if (!compiledWithErrors(nline)) {
-      compiled += nline;
-    } else {
-      console.log(renderError(nline, filename, true));
-      compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
-      readInterface.close();
-      process.exit();
-    }
-  }).on('close', () => {
-    writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
+    readInterface.on('line', (line) => {
+      const nline = comp.compile(line);
+      if (!compiledWithErrors(nline)) {
+        compiled += nline;
+      } else {
+        console.log(renderError(nline, filename, true));
+        compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
+        alreadyfailed = 1;
+        readInterface.close();
+        process.exit();
+      }
+    }).on('close', () => {
+      if (!alreadyfailed) {
+        const nline = comp.endOfFile();
+        if (!compiledWithErrors(nline)) {
+          compiled += nline;
+        } else {
+          console.log(renderError(nline, filename, true));
+          compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
+          process.exit();
+        }
+      }
+
+      writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
+      resolve();
+    });
   });
 }
 
 
-((): string => {
+(() => {
   const arg: string[] = process.argv.slice(2);
   if (!arg[0]) {
-    return usage;
+    return console.log(usage);
   }
   try {
     mkdirSync("./dist");
@@ -61,7 +77,13 @@ const compileFile = (filename: string) => {
     }
   }
   let promiseList = [];
-  if (!lstatSync(arg[0]).isDirectory()) {
+  let lstat;
+  try {
+    lstat = lstatSync(arg[0])
+  } catch(e) {
+    return console.log(Color.BgRed + Color.FgBlack, e.message, Color.Reset)
+  }
+  if (!lstat.isDirectory()) {
     promiseList[0] = compileFile(arg[0]);
   } else {
     const files = readdirSync(arg[0]);

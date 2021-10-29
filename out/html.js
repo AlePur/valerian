@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-var getString = function (str) {
-    var symbol = str[0];
+const getString = (str) => {
+    let symbol = str[0];
     if (symbol == "'" || symbol == "\"") {
         if (str[str.length - 1] != symbol) {
             return -2;
@@ -10,98 +10,159 @@ var getString = function (str) {
     }
     return -1;
 };
-var Html = /** @class */ (function () {
-    function Html() {
+class Html {
+    constructor() {
         this.openTags = [];
         this.indentLevel = -1;
         this.expectingBlock = false;
-        this.ignoreLastLine = false;
+        this.ignoreLine = false;
     }
-    Html.prototype.tag = function (name, kwargs) {
-        if (kwargs === void 0) { kwargs = {}; }
-        var values = "";
-        for (var _i = 0, _a = Object.entries(kwargs); _i < _a.length; _i++) {
-            var _b = _a[_i], key = _b[0], value = _b[1];
+    tag(name, kwargs = {}) {
+        let values = "";
+        for (const [key, value] of Object.entries(kwargs)) {
             if (!value)
                 continue;
-            values += " " + key + "=\"" + value + "\"";
+            values += ` ${key}="${value}"`;
         }
         return "<" + name + values + ">";
-    };
-    Html.prototype.closeTag = function (name) {
+    }
+    closeTag(name) {
         return "</" + name + ">";
-    };
-    Html.prototype.parse = function (line, indent) {
-        var _this = this;
-        var parsed = [];
-        var error = null;
-        var parselength = 0;
+    }
+    finish() {
+        let error = null;
+        let parsed = [];
+        const len = this.openTags.length;
+        for (let i = 0; i < len; i++) {
+            const ind = this.openTags.length - 1;
+            if (this.openTags[ind] == "_reserved") {
+                error = "Unexpected end of file: expected a paranthesis";
+                break;
+            }
+            else if (this.openTags[ind] == "__reserved") {
+                this.openTags.splice(ind, 1)[0];
+            }
+            else {
+                let oldtag = this.openTags.splice(ind, 1)[0];
+                parsed[i] = this.closeTag(oldtag);
+            }
+        }
+        parsed = parsed.filter(x => x !== undefined);
+        return {
+            lines: parsed,
+            scopeClose: true,
+            error
+        };
+    }
+    parse(line, indent) {
+        let parsed = [];
+        let error = null;
+        //let scopeclose = false;
+        let parselength = 0;
+        //console.log(this.openTags)
         if (indent > (this.indentLevel + 1)) {
             error = "Unexpected indent block";
         }
         if (indent <= this.indentLevel && this.expectingBlock) {
             error = "Expected an indented block";
         }
-        if ((indent <= this.indentLevel && this.ignoreLastLine == false) || (indent < this.indentLevel && this.ignoreLastLine)) {
-            var i = 0;
+        this.expectingBlock = false;
+        if ((indent <= this.indentLevel && !this.ignoreLine) || (indent < this.indentLevel && this.ignoreLine)) {
+            let i = 0;
+            let z = 1;
             for (i = 0; i <= ((this.indentLevel) - indent); i++) {
-                var oldtag = this.openTags.pop();
-                parsed[i] = this.closeTag(oldtag);
-            }
-            parselength = i;
-        }
-        this.ignoreLastLine = false;
-        this.indentLevel = indent;
-        var rawstr = getString(line);
-        if (line[0] == "(") {
-            var id = line.slice(1);
-            parsed[parselength] = this.tag("div", { id: id });
-            this.openTags.push("div");
-        }
-        else if (line[0] == ")") {
-            // Already closed
-            // parsed[parselength] = this.closeTag("div");
-            this.ignoreLastLine = true;
-        }
-        else if (rawstr != -1 && rawstr != -2) {
-            parsed[parselength] = rawstr;
-            this.ignoreLastLine = true;
-            this.openTags.push("");
-        }
-        else {
-            error = (function () {
-                var delimiter = line.indexOf(":");
-                if (delimiter == -1) {
-                    //return "Syntax not allowed, expected a colon"
+                const ind = (this.openTags.length - z);
+                if (ind < 0)
+                    break;
+                if (this.openTags[ind] == "_reserved") {
+                    z++;
                 }
-                var data = line.slice(delimiter + 1).trim();
-                if (data) {
-                    var str = getString(data);
-                    if (str == -1) {
-                        return "Expected a string";
+                else if (this.openTags[ind] == "__reserved") {
+                    this.openTags.splice(ind, 1);
+                }
+                else if (this.openTags[ind] !== undefined) {
+                    let oldtag = this.openTags.splice(ind, 1)[0];
+                    parsed[i] = this.closeTag(oldtag);
+                }
+                else {
+                    error = "Indentation error";
+                    break;
+                }
+            }
+            parsed = parsed.filter(x => x !== undefined);
+            //parselength = i;
+            parselength = parsed.length;
+        }
+        this.indentLevel = indent;
+        this.ignoreLine = false;
+        const rawstr = getString(line);
+        if (!error) {
+            if (line[0] == " " || line[0] == "\t") {
+                error = "Unexpected whitespace";
+            }
+            else if (line[0] == "(") {
+                let id = line.slice(1);
+                parsed[parselength] = this.tag("div", { id });
+                this.openTags.push("_reserved");
+            }
+            else if (line[0] == ")") {
+                this.ignoreLine = true;
+                parsed[parselength] = this.closeTag("div");
+                let check = 0;
+                for (let i = (this.openTags.length - 1); i >= 0; i--) {
+                    if (this.openTags[i] == "_reserved") {
+                        this.openTags.splice(i, 1);
+                        check = 1;
+                        break;
                     }
-                    else if (str == -2) {
-                        return "Unexpected end of line";
+                }
+                if (check == 0) {
+                    error = "Expected a paranthesis";
+                }
+            }
+            else if (typeof rawstr === 'string') {
+                parsed[parselength] = rawstr;
+                this.openTags.push("__reserved");
+            }
+            else {
+                error = (() => {
+                    let delimiter = line.indexOf(":");
+                    if (delimiter == -1) {
+                        this.openTags.push("__reserved");
+                        parsed[parselength] = this.tag(line);
+                        return null;
+                    }
+                    let data = line.slice(delimiter + 1).trim();
+                    if (data) {
+                        let str = getString(data);
+                        if (str == -1) {
+                            return "Expected a string";
+                        }
+                        else if (str == -2) {
+                            return "Unexpected end of line";
+                        }
+                        else {
+                            data = str;
+                        }
                     }
                     else {
-                        data = str;
+                        this.expectingBlock = true;
                     }
-                }
-                var clean = line.slice(0, delimiter);
-                parsed[parselength] = _this.tag(clean);
-                if (data) {
-                    parsed[parselength] += "\n" + "\t".repeat(indent + 1) + data;
-                }
-                _this.openTags.push(clean);
-                return null;
-            })();
+                    let clean = line.slice(0, delimiter);
+                    parsed[parselength] = this.tag(clean);
+                    if (data) {
+                        parsed[parselength] += "\n" + "\t".repeat(indent + 1) + data;
+                    }
+                    this.openTags.push(clean);
+                    return null;
+                })();
+            }
         }
         return {
             lines: parsed,
-            scopeClose: this.ignoreLastLine,
-            error: error
+            scopeClose: this.ignoreLine,
+            error
         };
-    };
-    return Html;
-}());
+    }
+}
 exports.default = Html;

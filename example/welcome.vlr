@@ -1,5 +1,4 @@
 html:
-    mul: "dd"
     head:
         title: "Test website"
     body:
@@ -18,19 +17,19 @@ html:
             (Form
                 h2: "Enter: "
                 form:
-                    { type = email } -> input:
-                    input { type = email }:
+                    { type = email } -> input
+                    input { type = email }
                     h1:
                         p: "Door"
                 i: "Goor"
             )
         )
-style:
+salacious:
     Header.h1:
-    #    font-size: 10px
+        font-size: "10px"
     Content:
         Form.h2:
-    #        color: red
+            color: "red"
         Form:
             form.input:
-    #            color: green;
+                color: "green"
