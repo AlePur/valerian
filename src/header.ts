@@ -16,3 +16,8 @@ export interface CompileError {
   trace: string;
   line: number;
 }
+export interface ParsedHtml {
+  lines: string[];
+  scopeClose: true | false;
+  error: null | string;
+}

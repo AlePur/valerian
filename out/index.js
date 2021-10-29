@@ -8,7 +8,7 @@ var readline = require("readline");
 var path = require("path");
 var renderError = function (comerror, filename, console) {
     var err = (console ? console_1.default.FgBlack + console_1.default.BgRed : '') + "Failed:" + (console ? console_1.default.Reset : '');
-    err += "\n\t" + (console ? console_1.default.FgRed : '') + comerror.message + (console ? console_1.default.Reset : '') + "\n";
+    err += "\n\t" + (console ? console_1.default.FgRed : '') + comerror.message + ":" + (console ? console_1.default.Reset : '') + "\n";
     err += "\t" + comerror.line + " --> " + comerror.trace;
     err += "\n\t" + "~".repeat(4 + comerror.line.toString().length) + "\n";
     err += (console ? console_1.default.Underscore : '') + "\nOn line " + comerror.line + " in " + filename + (console ? console_1.default.Reset : '');
@@ -30,7 +30,7 @@ var compileFile = function (filename) {
     var comp = new compile_1.default();
     logVerbose("Compiling", filename, "...");
     var readInterface = readline.createInterface({
-        input: fs_1.createReadStream(filename)
+        input: (0, fs_1.createReadStream)(filename)
     });
     readInterface.on('line', function (line) {
         var nline = comp.compile(line);
@@ -44,16 +44,16 @@ var compileFile = function (filename) {
             process.exit();
         }
     }).on('close', function () {
-        fs_1.writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
+        (0, fs_1.writeFileSync)(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
     });
 };
-console.log((function () {
+(function () {
     var arg = process.argv.slice(2);
     if (!arg[0]) {
         return header_1.usage;
     }
     try {
-        fs_1.mkdirSync("./dist");
+        (0, fs_1.mkdirSync)("./dist");
     }
     catch (e) {
         if (e.code != ("EEXIST")) {
@@ -61,20 +61,16 @@ console.log((function () {
         }
     }
     var promiseList = [];
-    if (!fs_1.lstatSync(arg[0]).isDirectory()) {
+    if (!(0, fs_1.lstatSync)(arg[0]).isDirectory()) {
         promiseList[0] = compileFile(arg[0]);
     }
     else {
-        fs_1.readdirSync(arg[0], function (err, files) {
-            if (err) {
-                return console.log('Unable to open directory: ' + err.message);
-            }
-            files.forEach(function (file) {
-                promiseList.push(compileFile(path.join(arg[0], file)));
-            });
+        var files = (0, fs_1.readdirSync)(arg[0]);
+        files.forEach(function (file) {
+            promiseList.push(compileFile(path.join(arg[0], file)));
         });
     }
-    Promise.all.apply(Promise, promiseList).then(function (values) {
-        return "Successfully compiled all files.";
+    Promise.all(promiseList).then(function (values) {
+        console.log("Successfully compiled all files.");
     });
-})());
+})();

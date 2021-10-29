@@ -1,4 +1,5 @@
 html:
+    mul: "dd"
     head:
         title: "Test website"
     body:
@@ -25,10 +26,10 @@ html:
         )
 style:
     Header.h1:
-        font-size: 10px
+    #    font-size: 10px
     Content:
         Form.h2:
-            color: red
+    #        color: red
         Form:
             form.input:
-                color: green;
+    #            color: green;

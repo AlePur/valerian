@@ -1,4 +1,4 @@
-import { CompileError } from "./header";
+import { CompileError, ParsedHtml } from "./header";
 import Html from "./html";
 
 const throwError = (message: string, trace: string, line: number): CompileError => {
@@ -31,6 +31,7 @@ export default class Compiler {
 
   compile(line: string): string | CompileError {
     let nline = "";
+    //const oline = line;
     if (line[0] == " " || line[0] == "\t") {
       if (!this.indent) {
         const regex = /[^ \t]/g;
@@ -47,29 +48,36 @@ export default class Compiler {
         line = line.slice(this.indentLevel*len)
       }
       /*if (this.lineNumber == 0) {
-        return throwError("Unexpected indent block.", line, this.lineNumber);
+        return throwError("Unexpected indent block", line, this.lineNumber);
       }*/
     } else {
       this.indentLevel = 0;
     } 
 
-    switch(this.region) {
-      case "html":
-        let parsed = this.htmlParser.parse(line, this.indentLevel);
-        if (parsed.length == 1) {
-          nline += "\t".repeat(this.indentLevel);
-          nline += parsed[0];
-          nline += "\n";
-        } else {
-          for (let i = 0; i < parsed.length; i++) {
-            nline += "\t".repeat(Math.max(this.indentLevel + ((parsed.length - 2) - i), this.indentLevel));
-            nline += parsed[i];
-            nline += "\n";
+    if (line[0] != "#") {
+      switch(this.region) {
+        case "html":
+          let parsed = this.htmlParser.parse(line, this.indentLevel);
+          //console.log(parsed)
+          if (parsed.error) {
+            return throwError(parsed.error, line, this.lineNumber);
           }
-        }
-        break;
-      default:
-        return throwError("Unexpected exception", line, this.lineNumber);
+          let lines = parsed.lines;
+          if (lines.length == 1) {
+            nline += "\t".repeat(this.indentLevel);
+            nline += lines[0];
+            nline += "\n";
+          } else {
+            for (let i = 0; i < lines.length; i++) {
+              nline += "\t".repeat(Math.max(this.indentLevel + ((lines.length - (parsed.scopeClose ? 1 : 2)) - i), this.indentLevel));
+              nline += lines[i];
+              nline += "\n";
+            }
+          }
+          break;
+        default:
+          return throwError("Unexpected exception", line, this.lineNumber);
+      }
     }
     this.lineNumber++;
     return nline;
