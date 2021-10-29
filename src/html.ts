@@ -1,10 +1,12 @@
 export default class Html {
   openTags: string[];
   indentLevel: number;
+  ignoreLastLine: boolean;
 
   constructor() {
     this.openTags = [];
     this.indentLevel = -1;
+    this.ignoreLastLine = false;
   }
 
   tag(name: string): string {
@@ -18,7 +20,7 @@ export default class Html {
     let parsed = [];
     let parselength = 0;
 
-    if (indent <= this.indentLevel) {    //FIX INDENT LEVEL ERRORS WITH PARANTHESIS
+    if (indent <= this.indentLevel) {
       let i = 0;
       for(i = 0; i <= ((this.indentLevel) - indent); i++) {
         let oldtag = this.openTags.pop();
@@ -37,6 +39,7 @@ export default class Html {
       let oldparsed = parsed;
       oldparsed.pop();
       parsed = oldparsed
+      this.ignoreLastLine = true;
     } else {
       let clean = line.slice(0, line.indexOf(":"));
       parsed[parselength] = this.tag(clean);

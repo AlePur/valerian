@@ -61,7 +61,7 @@ export default class Compiler {
           nline += parsed[0];
           nline += "\n";
         } else {
-          for(let i = 0; i < parsed.length; i++) {
+          for (let i = 0; i < parsed.length; i++) {
             nline += "\t".repeat(Math.max(this.indentLevel + ((parsed.length - 2) - i), this.indentLevel));
             nline += parsed[i];
             nline += "\n";

@@ -6,12 +6,12 @@ html:
             h1: "Welcome!"
         )
         (Content
-            (_
+            (
                 p: "Lorem ipsum"
             )
             i: "Dolor sit amet"
             @btn Button:
-                (_
+                (
                     "Click here!"
                 )
             (Form

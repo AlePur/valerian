@@ -4,6 +4,7 @@ var Html = /** @class */ (function () {
     function Html() {
         this.openTags = [];
         this.indentLevel = -1;
+        this.ignoreLastLine = false;
     }
     Html.prototype.tag = function (name) {
         return "<" + name + ">";
@@ -14,7 +15,7 @@ var Html = /** @class */ (function () {
     Html.prototype.parse = function (line, indent) {
         var parsed = [];
         var parselength = 0;
-        if (indent <= this.indentLevel) { //FIX INDENT LEVEL ERRORS WITH PARANTHESIS
+        if (indent <= this.indentLevel) {
             var i = 0;
             for (i = 0; i <= ((this.indentLevel) - indent); i++) {
                 var oldtag = this.openTags.pop();
@@ -33,6 +34,7 @@ var Html = /** @class */ (function () {
             var oldparsed = parsed;
             oldparsed.pop();
             parsed = oldparsed;
+            this.ignoreLastLine = true;
         }
         else {
             var clean = line.slice(0, line.indexOf(":"));
