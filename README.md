@@ -1,12 +1,12 @@
 # <img src="./title.svg">
 
+<img src="./logo.svg" width="400" align="right">
+
 <div>
 <p>Fast, readable, flexible web development.</p>
 <p>Custom markdown incorporating the powers of a web framework.</p>
 <b>Zero dependencies.</b> 
 </div>
-
-<img src="./logo.svg" width="400">
 
 ## hello.vlr
 ```php
