@@ -1,10 +1,10 @@
-<svg fill="none" viewBox="0 0 600 70" width="100%" height="70" xmlns="http://www.w3.org/2000/svg">
+<svg fill="none" viewBox="0 0 800 100" width="100%" height="100" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style type="text/css">
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600');
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500');
     </style>
   </defs>
-  <foreignObject width="100%" height="70">
+  <foreignObject width="100%" height="100">
     <div xmlns="http://www.w3.org/1999/xhtml">
       <style>
         #s_wrap {
@@ -12,7 +12,7 @@
           justify-content: center;
         }
         #s_title {
-          font-size: 55px; 
+          font-size: 70px; 
           text-align: center;
           font-family: 'Nunito', sans-serif;
           background-image: linear-gradient(45deg, #a0da3a, #496d21);
@@ -32,7 +32,7 @@
         }
       </style>
       <div id="s_wrap">
-        <div id="s_imgwrap"><svg height="60px" id="s_img" viewBox="147.846 160.652 216.531 184.517" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
+        <div id="s_imgwrap"><svg height="80px" id="s_img" viewBox="147.846 160.652 216.531 184.517" xmlns="http://www.w3.org/2000/svg" xmlns:bx="https://boxy-svg.com">
   <defs>
     <linearGradient gradientUnits="userSpaceOnUse" x1="147.264" y1="137.37" x2="147.264" y2="159.488" id="gradient-4" gradientTransform="matrix(1, 0, 0, 1, 19.77113, 96.971116)">
       <stop offset="0" style="stop-color: rgba(255, 255, 255, 1)"/>

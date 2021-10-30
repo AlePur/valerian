@@ -1,4 +1,7 @@
 export const usage = `node index.js <.vlr file or folder>`;
+export const compiledWithErrors = (t: string | CompileError): t is CompileError => { 
+  return (t as CompileError).message !== undefined;
+};
 export const errorHtml = `<html>
   <head>
     <title>

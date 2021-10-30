@@ -7,14 +7,16 @@ export default class Parser {
   ignoreLine: boolean;
   error: null | string;
   parsed: string[];
+  baseIndent: number;
 
   constructor() {
     this.openBlocks = [];
-    this.indentLevel = -1;
+    this.indentLevel = 1;
     this.expectingBlock = false;
     this.ignoreLine = false;
     this.error = null;
     this.parsed = [];
+    this.baseIndent = 0;
   }
 
   protected getString(str: string): string | -1 | -2 {

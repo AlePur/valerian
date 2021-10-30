@@ -17,3 +17,9 @@ html:
                 label: "Last name:"
                 input
             )
+style: 
+    Header.h1:
+        color: "red"
+    Content:
+        p:
+            font-size: "30px"

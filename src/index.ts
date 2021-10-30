@@ -1,4 +1,4 @@
-import { usage, CompileError, errorHtml } from "./header";
+import { usage, CompileError, errorHtml, compiledWithErrors } from "./header";
 import Compiler from "./compiler";
 import Color from "./console";
 import { lstatSync, readFileSync, createReadStream, writeFileSync, mkdirSync, readdirSync } from "fs";
@@ -15,10 +15,6 @@ const renderError = (comerror: CompileError, filename: string, console: boolean)
   return err;
 };
 
-const compiledWithErrors = (t: string | CompileError): t is CompileError => { 
-  return (t as CompileError).message !== undefined;
-};
-
 const logVerbose = (...str: string[]): void => {
   console.log(...str);
 };
@@ -26,7 +22,7 @@ const logVerbose = (...str: string[]): void => {
 const compileFile = (filename: string): Promise<void> => {
   return new Promise((resolve) => {
     let alreadyfailed = 0;
-    let compiled = "";
+    let compiled = "<html>\n";
     const comp = new Compiler();
     logVerbose("Compiling", filename, "...");
 
@@ -50,6 +46,7 @@ const compileFile = (filename: string): Promise<void> => {
         const nline = comp.endOfFile();
         if (!compiledWithErrors(nline)) {
           compiled += nline;
+          compiled += "</html>";
         } else {
           console.log(renderError(nline, filename, true));
           compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
