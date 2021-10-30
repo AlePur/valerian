@@ -1,7 +1,6 @@
-import { CompileError, ParsedLine, compiledWithErrors } from "./header";
-import Css from "./parsers/css";
-import Html from "./parsers/html";
-//import Parser from "./parsers/base";
+import { CompileError, CompiledLine, ParsedLine, ParsedList, compiledWithErrors } from "./header";
+import CssCompiler from "./compilers/css";
+import HtmlCompiler from "./compilers/html";
 
 type Region = "html" | "css" | "js";
 
@@ -23,8 +22,8 @@ export default class Compiler {
   indentLevel: number;
   lineNumber: number;
   baseIndent: number;
-  htmlParser: Html;
-  cssParser: Css;
+  htmlParser: HtmlCompiler;
+  cssParser: CssCompiler;
   region: Region;
 
   constructor() {
@@ -32,8 +31,8 @@ export default class Compiler {
     this.indentLevel = 0;
     this.indent = "";
     this.baseIndent = 0;
-    this.htmlParser = new Html();
-    this.cssParser = new Css();
+    this.htmlParser = new HtmlCompiler();
+    this.cssParser = new CssCompiler();
     this.region = "js";
   }
 
@@ -62,32 +61,19 @@ export default class Compiler {
 
   private parseLine(action: string, line: string = ""): string | CompileError {
     let nline = "";
-    let parsed: ParsedLine;
+    let parsed: CompiledLine;
     if (this.region == "html") {
-      parsed = ((action == "parse") ? this.htmlParser.parse(line, this.indentLevel) : this.htmlParser.finish());
+      parsed = ((action == "parse") ? this.htmlParser.compile(line, this.indentLevel, this.lineNumber) : this.htmlParser.finish());
     } else if (this.region == "css") {
-      parsed = ((action == "parse") ? this.cssParser.parse(line, this.indentLevel) : this.cssParser.finish());
+      parsed = ((action == "parse") ? this.cssParser.compile(line, this.indentLevel, this.lineNumber) : this.cssParser.finish());
     } else {
       return throwError("Unexpected exception", line, this.lineNumber);
     }
     //let parsed = this.htmlParser[action](line, this.indentLevel);
-    console.log(parsed)
     if (parsed.error) {
       return throwError(parsed.error, line, this.lineNumber);
     }
-    let lines = parsed.lines;
-    if (lines.length == 1) {
-      nline += "\t".repeat(this.indentLevel + this.baseIndent);
-      nline += lines[0];
-      nline += "\n";
-    } else {
-      for (let i = 0; i < lines.length; i++) {
-        nline += "\t".repeat(Math.max(this.indentLevel + ((lines.length - (action != "finish" ? ((parsed.scopeClose ? 1 : 2) + this.baseIndent) : 0)) - i), this.indentLevel));
-        nline += lines[i];
-        nline += "\n";
-      }
-    }
-    return nline;
+    return parsed.line;
   }
 
   public endOfFile(): string | CompileError {
@@ -97,6 +83,8 @@ export default class Compiler {
     if (!compiledWithErrors(nline)) {
       if (this.region == "css") {
         nline += "\t</style>\n";
+      } else if (this.region == "js") {
+        nline += "\t</script>\n";
       }
     }
     return nline;
@@ -116,17 +104,20 @@ export default class Compiler {
         for (i = 0; true; i++) {
           if (line.slice(0 + (i*len), len*(i + 1)) != this.indent) break;
         }
+        if (i > this.indentLevel + 1) {
+          return throwError("Unexpected block indent", line, this.lineNumber);
+        }
         this.indentLevel = i;
         line = line.slice(this.indentLevel*len)
       }
       if (this.lineNumber == 0) {
-        return throwError("Unexpected indent block", line, this.lineNumber);
+        return throwError("Unexpected block indent", line, this.lineNumber);
       }
     } else {
       this.indentLevel = 0;
     } 
 
-    line = line.trim();
+    line = line.trimEnd();
 
     if (line[0] != "#") {
       if (line == "html:") {

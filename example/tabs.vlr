@@ -1,5 +1,25 @@
 html:
 	body:
-		(Header
-			h1: "Welcome!"
+		(Holler
+			(
+				"D'or"
+				h2: "BLUE"
+			)
+			(
+				(
+					(
+						h1:
+							h2:
+								h3: "D"
+						v: "4"
+					)
+				)
+			)
+			h2: "BLUE"
 		)
+		h1: "Welcome!"
+		h2: "splendid"
+style:
+	body.div.h2:
+		font-size: "40px"
+		color: "blue"

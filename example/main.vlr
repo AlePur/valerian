@@ -7,11 +7,17 @@ html:
         )
         (Content
             p Emoji: "😊"
+            li:
+                a:
+                    "dd"
         )
+        li:
+            a:
+                dd
         form:
             (
                 label: "First name:"
-                input:
+                input
             )
             (
                 label: "Last name:"
@@ -20,6 +26,8 @@ html:
 style: 
     Header.h1:
         color: "red"
+        h2:
+            "h3"
     Content:
         p:
             font-size: "30px"
