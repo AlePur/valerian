@@ -16,7 +16,7 @@ export interface CompileError {
   trace: string;
   line: number;
 }
-export interface ParsedHtml {
+export interface ParsedLine {
   lines: string[];
   scopeClose: true | false;
   error: null | string;

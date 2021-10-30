@@ -1,5 +1,5 @@
 import { usage, CompileError, errorHtml } from "./header";
-import Compiler from "./compile";
+import Compiler from "./compiler";
 import Color from "./console";
 import { lstatSync, readFileSync, createReadStream, writeFileSync, mkdirSync, readdirSync } from "fs";
 import * as readline from "readline";

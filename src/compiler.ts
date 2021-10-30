@@ -1,5 +1,6 @@
-import { CompileError, ParsedHtml } from "./header";
-import Html from "./html";
+import { CompileError, ParsedLine } from "./header";
+import Html from "./parsers/html";
+//import Parser from "./parsers/base";
 
 const throwError = (message: string, trace: string, line: number): CompileError => {
   return {
@@ -9,10 +10,10 @@ const throwError = (message: string, trace: string, line: number): CompileError 
   }
 }
 
-const assert = (a: number, b: number) => {
+/*const assert = (a: number, b: number) => {
   return 0;
   return throwError("33", "dsdsd", 6566);
-}
+}*/
 
 export default class Compiler {
   indent: string;
@@ -32,8 +33,8 @@ export default class Compiler {
   private handleHtml(action: string, line: string = ""): string | CompileError {
     let nline = "";
     let parsed = ((action == "parse") ? this.htmlParser.parse(line, this.indentLevel) : this.htmlParser.finish());
-    //    let parsed = this.htmlParser[action](line, this.indentLevel);
-    console.log(parsed)
+    //let parsed = this.htmlParser[action](line, this.indentLevel);
+    //console.log(parsed)
     if (parsed.error) {
       return throwError(parsed.error, line, this.lineNumber);
     }
@@ -52,7 +53,7 @@ export default class Compiler {
     return nline;
   }
 
-  endOfFile(): string | CompileError {
+  public endOfFile(): string | CompileError {
     this.indentLevel = 0;
 
     switch(this.region) {
@@ -63,7 +64,7 @@ export default class Compiler {
     }
   }
 
-  compile(line: string): string | CompileError {
+  public compile(line: string): string | CompileError {
     let nline: string | CompileError = "";
     //const oline = line;
     if (line[0] == " " || line[0] == "\t") {

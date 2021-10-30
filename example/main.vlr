@@ -1,0 +1,19 @@
+html:
+    head:
+        title: "My Valerian.js Website"
+    body:
+        (Header
+            h1: "Welcome!"
+        )
+        (Content
+            p Emoji: "😊"
+        )
+        form:
+            (
+                label: "First name:"
+                input:
+            )
+            (
+                label: "Last name:"
+                input
+            )
