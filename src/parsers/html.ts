@@ -11,17 +11,63 @@ export default class HtmlParser extends BaseParser {
     const len = this.parsed.length;
 
     if (line[0] == "(") {
-      let id = line.slice(1);
-      if (id != "") {
-        if (id[0] !== id[0].toUpperCase()) {
-          return "Element ids are expected to be in PascalCase"
+      // either div or (params) ->
+      const p = line.split("->");
+      if (p.length > 1) {
+        let params = p[0].trim();
+        const key = p[1].trim();
+        if (params[0] != "(" && params[params.length - 1] != ")") {
+          return "Expected paranthesis around element parameters";
         }
-        this.parsed.push(this.openHtmlBlock("div", { id }));
+        params = params.slice(1, params.length - 1);
+        const blocks = params.split(",");
+        let pairs: HtmlKwargs = {}
+        for (let i = 0; i < blocks.length; i++) {
+          let x = blocks[i].split("=")
+          if (x.length != 2) {
+            return "Error parsing element parameters";
+          }
+          pairs[x[0].trim()] = x[1].trim();
+        }
+
+        const rawstr = this.getString(line);
+
+        const pair = this.getKeyValuePair(key);
+        if (pair == -1) {
+          return "A string takes no parameters"
+        }
+
+        if (pair.error !== null) {
+          return pair.error;
+        }
+
+        const id = pair.key.split(" ");
+
+        if (id.length > 1) {
+          this.openBlocks.push(id[0]);
+          if (id[1][0] !== id[1][0].toUpperCase()) {
+            return "Element ids are expected to be in PascalCase"
+          }
+          pairs["id"] = id[1];
+          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
+        } else {
+          this.openBlocks.push(pair.key);
+          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
+        }
+        return -1;
       } else {
-        this.parsed.push(this.openBlock("div", null));
+        let id = line.slice(1);
+        if (id != "") {
+          if (id[0] !== id[0].toUpperCase()) {
+            return "Element ids are expected to be in PascalCase"
+          }
+          this.parsed.push(this.openHtmlBlock("div", { id }));
+        } else {
+          this.parsed.push(this.openBlock("div", null));
+        }
+        this.openBlocks.push("_reserved");
+        return -1;
       }
-      this.openBlocks.push("_reserved");
-      return -1;
     } else if (line[0] == ")") {
       this.ignoreLine = true;
       this.parsed[len] = this.closeBlock("div", this.indentLevel);

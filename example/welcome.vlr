@@ -18,16 +18,8 @@ html:
                     "Click here!"
                 )
             (Form
-                (  
-                )
-                h2: "Enter: "
+                (type=text, lang=eng) -> "Enter:"
                 form:
-                    { type = email } -> input
-                    input { type = email }
-                    h1:
-                        p: "Door"
-                i: "Goor"
+                    input
             )
         )
-style:
-    "d"

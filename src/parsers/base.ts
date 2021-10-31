@@ -128,7 +128,7 @@ export default class BaseParser {
     this.openBlocks.push("__reserved");
   }
 
-  private getString(str: string): string | -1 | -2 {
+  public getString(str: string): string | -1 | -2 {
     let symbol = str[0];
     if (symbol == "'" || symbol == "\"") {
       if (str[str.length - 1] != symbol) {
