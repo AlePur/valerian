@@ -4,7 +4,6 @@ import BaseParser from "../parsers/base";
 export default class BaseCompiler {
   error: null | string;
   compiled: string[];
-  scope: string[];
   parser: ParserType;
   baseIndent: number;
   //line: string;
@@ -12,7 +11,6 @@ export default class BaseCompiler {
   constructor() {
     this.error = null;
     //this.line = "__INIT";
-    this.scope = [];
     this.compiled = [];
     this.parser = new BaseParser();
     this.baseIndent = 0;

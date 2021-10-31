@@ -4,53 +4,65 @@ import CssParser from "../parsers/css";
 
 export default class CssCompiler extends BaseCompiler {
   ignoreNext: boolean;
-  storedKey: string | null;
+  scope: Array<string[]>;
+  stringOnlyBlock: boolean;
 
   constructor() {
     super();
-    this.storedKey = "";
     this.parser = new CssParser();
     this.baseIndent = 1;
+    this.stringOnlyBlock = false;
+    this.scope = [];
     this.ignoreNext = false;
   }
   
   protected openBlock(name: string): string {
-    return name;
+    return name + " {";
   }
 
-  private completePreviousBlock(): string | null {
-    // weird check
-    if (this.compiled.length < 1) {
-      return "Syntax error";
-    }
-    this.compiled[this.compiled.length - 1] += " {";
-    return null;
-  }
+  // private completePreviousBlock(): string | null {
+  //   // weird check
+  //   if (this.compiled.length < 1) {
+  //     return "Syntax error";
+  //   }
+  //   this.compiled[this.compiled.length - 1] += " {";
+  //   return null;
+  // }
 
   protected closeBlock(name: string): string {
     return "}";
   }
 
   protected compileLine(obj: ParsedLine): null | string {
+    console.log(this.scope)
     let tmp = "";
-    let storedKey = null;
-    if (this.scope.length != 0) {
-      let t = this.scope[this.scope.length - 1].split(" ");
-      storedKey = t[t.length - 1];
-    }
     if (obj.rawString) {
-      if (storedKey == null) {
-        return "Unexpected string"
+      let strScope = ""
+      for (let i = 0; i < this.scope.length; i++) {
+        strScope += this.scope[i].join(" ") + " ";
       }
-      this.error = this.completePreviousBlock();
-      if (this.error) return this.error;
+      if (!strScope || strScope == "") {
+        return "Unexpected string";
+      }
+      strScope = strScope.slice(0, strScope.length - 1);
+      let tmpArray = strScope.split(" ");
+      let lastKey = tmpArray.pop();
+      strScope = tmpArray.join(" ");
+      if (this.stringOnlyBlock == false) {
+        tmp += "\t".repeat(obj.indentLevel + this.baseIndent - this.scope.length);
+        tmp += this.openBlock(strScope);
+        this.compiled.push(tmp);
+        tmp = "";
+      }
       tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
-      tmp += storedKey;
+      tmp += lastKey;
       tmp += ": ";
       tmp += obj.key;
       tmp += ";";
+      this.stringOnlyBlock = true;
     } else {
       if (obj.scopeClose) {
+        this.stringOnlyBlock = false;
         this.scope.pop();
         if (!this.ignoreNext) {
           tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
@@ -59,44 +71,51 @@ export default class CssCompiler extends BaseCompiler {
           this.ignoreNext = false;
         }
       } else {
-        /*if (this.storedKey == null) {
+        if (this.stringOnlyBlock == true) {
           return "Nesting css keywords is not allowed"
-        }*/
+        }
         const checkIfId = (_key: string): string => {
           if (_key[0] === _key[0].toUpperCase()) {
             return "#";
           }
           return "";
         }
-
+        
         const keyArray = (obj.key).split(".");
-        let key = "";
-        tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
-        let nextStoredKey: string = "";
+        let key: string[] = [];
+        // let nextStoredKey: string = "";
         for (let i = 0; i < keyArray.length; i++) {
-          if (i == keyArray.length - 1) {
-            nextStoredKey = " " + checkIfId(keyArray[i]) + keyArray[i];
-            break;
-          }
-          key += checkIfId(keyArray[i]);
-          key += keyArray[i] + " ";
+          // if (i == keyArray.length - 1) {
+          //   nextStoredKey = " " + checkIfId(keyArray[i]) + keyArray[i];
+          //   break;
+          // }
+          key[i] = checkIfId(keyArray[i]);
+          key[i] += keyArray[i];
         }
-        // remove whitespace
-        key = key.slice(0, key.length - 1);
-        if (storedKey !== null) {
-          key += storedKey;
+        let strScope = ""
+        for (let i = 0; i < this.scope.length; i++) {
+          strScope += this.scope[i].join(" ") + " ";
         }
-        this.scope.push(key + nextStoredKey)
+        strScope = strScope.slice(0, strScope.length - 1);
+        this.scope.push(key)
         if (obj.value !== null) {
+          if (strScope != "") {
+            console.log(strScope)
+            // since you pushed new scope -1
+            tmp += "\t".repeat(obj.indentLevel + this.baseIndent - (this.scope.length - 1));
+            tmp += this.openBlock(strScope);
+            this.compiled.push(tmp);
+            tmp = "";
+          }
+          tmp += "\t".repeat(2 + this.baseIndent) //obj.indentLevel + this.baseIndent);
           tmp += key;
           tmp += ": ";
           tmp += obj.value;
           tmp += ";";
           this.ignoreNext = true;
         } else {
-          tmp += this.openBlock(key);
+          return null;
         }
-        console.log(this.scope)
       }
     }
     this.compiled.push(tmp);
