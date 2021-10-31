@@ -1,4 +1,4 @@
-import { CompileError, CompiledLine, ParsedLine, ParsedList, compiledWithErrors } from "./header";
+import { CompileError, CompiledRegion, ParsedLine, ParsedList, compiledWithErrors } from "./header";
 import CssCompiler from "./compilers/css";
 import HtmlCompiler from "./compilers/html";
 
@@ -36,14 +36,18 @@ export default class Compiler {
     this.region = "js";
   }
 
-  private switchRegion(region: Region, line: string): string | CompileError {
-    let nline: string | CompileError = "";
+  private switchRegion(region: Region, line: string): CompiledRegion | CompileError {
+    let nline: CompiledRegion | CompileError | -1;
     if (this.indentLevel != 0) {
       return throwError("Style and script tags are not allowed in the scope of another language", line, this.lineNumber);
     }
     if (this.region != "js") {
       nline = this.parseLine("finish");
     }
+    if (nline === -1) {
+      return throwError("Unexpected end of line", line, this.lineNumber);
+    }
+
     this.region = region;
     /*if (!compiledWithErrors(nline)) {
       nline += this.parseLine("parse", line);
@@ -51,7 +55,7 @@ export default class Compiler {
     if (!compiledWithErrors(nline)) {
       if (region == "css") {
         this.baseIndent = 1;
-        nline += "\t<style>\n";
+        nline.lines.push("\t<style>");
       } else if (region == "html") {
         this.baseIndent = 0;
       }
@@ -59,9 +63,9 @@ export default class Compiler {
     return nline;
   }
 
-  private parseLine(action: string, line: string = ""): string | CompileError {
+  private parseLine(action: string, line: string = ""): CompiledRegion | CompileError | -1 {
     let nline = "";
-    let parsed: CompiledLine;
+    let parsed: CompiledRegion | -1 | string;
     if (this.region == "html") {
       parsed = ((action == "parse") ? this.htmlParser.compile(line, this.indentLevel, this.lineNumber) : this.htmlParser.finish());
     } else if (this.region == "css") {
@@ -70,30 +74,31 @@ export default class Compiler {
       return throwError("Unexpected exception", line, this.lineNumber);
     }
     //let parsed = this.htmlParser[action](line, this.indentLevel);
-    if (parsed.error) {
-      return throwError(parsed.error, line, this.lineNumber);
-    } else if (parsed.error !== null) {
-      return throwError("Unexpected exception", line, this.lineNumber);
+    if (typeof parsed === "string") {
+      return throwError(parsed, line, this.lineNumber);
     }
-    return parsed.line;
+    return parsed;
   }
 
-  public endOfFile(): string | CompileError {
-    let nline: string | CompileError = ""; 
+  public endOfFile(): CompiledRegion | CompileError {
+    let nline: CompiledRegion | CompileError | -1; 
     this.indentLevel = 0;
     nline = this.parseLine("finish");
+    if (nline === -1) {
+      return throwError("Unexpected end of line", "_EOF_RESERVED", this.lineNumber);
+    }
     if (!compiledWithErrors(nline)) {
       if (this.region == "css") {
-        nline += "\t</style>\n";
+        nline.lines.push("\t</style>");
       } else if (this.region == "js") {
-        nline += "\t</script>\n";
+        nline.lines.push("\t</script>");
       }
     }
     return nline;
   }
 
-  public compile(line: string): string | CompileError {
-    let nline: string | CompileError = "";
+  public compile(line: string): CompiledRegion | CompileError | -1 {
+    let nline: CompiledRegion | CompileError | -1;
     if (line[0] == " " || line[0] == "\t") {
       if (!this.indent) {
         const regex = /[^ \t]/g;

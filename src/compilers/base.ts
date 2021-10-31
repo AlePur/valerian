@@ -1,9 +1,10 @@
-import { ParsedList, ParsedLine, CompiledLine, ParserType } from "../header";
+import { ParsedList, ParsedLine, CompiledRegion, ParserType } from "../header";
 import BaseParser from "../parsers/base";
 
 export default class BaseCompiler {
   error: null | string;
-  compiled: string;
+  compiled: string[];
+  scope: string[];
   parser: ParserType;
   baseIndent: number;
   //line: string;
@@ -11,7 +12,8 @@ export default class BaseCompiler {
   constructor() {
     this.error = null;
     //this.line = "__INIT";
-    this.compiled = "";
+    this.scope = [];
+    this.compiled = [];
     this.parser = new BaseParser();
     this.baseIndent = 0;
   }
@@ -29,22 +31,23 @@ export default class BaseCompiler {
   }
 
   protected compileLine(obj: ParsedLine): null | string {
-    this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
+    let tmp: string = "";
+
+    tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
     if (obj.rawString) {
-      this.compiled += this.stringBlock(obj.key);
+      tmp += this.stringBlock(obj.key);
     } else {
       if (obj.scopeClose) {
-        this.compiled += this.closeBlock(obj.key);
+        tmp += this.closeBlock(obj.key);
       } else {
-        this.compiled += this.openBlock(obj.key);
+        tmp += this.openBlock(obj.key);
         if (obj.value !== null) {
-          this.compiled += "\n";
-          this.compiled += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
-          this.compiled += this.stringBlock(obj.value);
+          tmp += "\n";
+          tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+          tmp += this.stringBlock(obj.value);
         }
       }
     }
-    this.compiled += "\n";
     return null;
   }
 

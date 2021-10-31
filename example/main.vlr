@@ -21,7 +21,9 @@ html:
                 input
             )
 style:
+    body.Content.p.color: 
+        "red"
     body.Header:
+        color: "red"
         h1:
-            font-size: "40px"
-            color: "blue"
+            font-size: "7"

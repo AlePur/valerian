@@ -18,7 +18,7 @@ html:
                     "Click here!"
                 )
             (Form
-                (type=text, lang=eng) -> "Enter:"
+                (type=checkbox) -> input
                 form:
                     input
             )

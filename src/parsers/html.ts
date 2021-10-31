@@ -19,6 +19,7 @@ export default class HtmlParser extends BaseParser {
         if (params[0] != "(" && params[params.length - 1] != ")") {
           return "Expected paranthesis around element parameters";
         }
+        // get rid of paranthesis
         params = params.slice(1, params.length - 1);
         const blocks = params.split(",");
         let pairs: HtmlKwargs = {}
@@ -30,11 +31,19 @@ export default class HtmlParser extends BaseParser {
           pairs[x[0].trim()] = x[1].trim();
         }
 
-        const rawstr = this.getString(line);
+        const rawstr = this.getString(key);
+
+        if (rawstr !== -1) {
+          return "A string takes no parameters";
+        }
 
         const pair = this.getKeyValuePair(key);
+
         if (pair == -1) {
-          return "A string takes no parameters"
+          this.parsed.push(this.getParsedLine(key, null, pairs, false, false, true));
+          this.openBlocks.push("__reserved");
+          this.expectingNoBlock = true;
+          return -1;
         }
 
         if (pair.error !== null) {

@@ -59,10 +59,10 @@ export default class BaseParser {
       let str = this.getString(data);
       if (str == -1) {
         return this.throwError("Expected a string");
-      } else if (str == -2) {
-        return this.throwError("Unexpected end of line");
+      } else if (str.err !== null) {
+        return this.throwError(str.err);
       } else {
-        data = str;
+        data = str.str;
       }
     } else {
       this.expectingBlock = true;
@@ -128,13 +128,13 @@ export default class BaseParser {
     this.openBlocks.push("__reserved");
   }
 
-  public getString(str: string): string | -1 | -2 {
+  public getString(str: string): { str?: string, err: null | string } | -1 {
     let symbol = str[0];
     if (symbol == "'" || symbol == "\"") {
       if (str[str.length - 1] != symbol) {
-        return -2;
+        return { err: "Expected a semcolon" }
       }
-      return str.slice(1, str.length - 1)
+      return { str: str.slice(1, str.length - 1), err: null }
     }
     return -1;
   }
@@ -197,10 +197,14 @@ export default class BaseParser {
         if (line[0] == " " || line[0] == "\t") {
           this.error = "Unexpected whitespace, possible cause is mixed tabs and spaces"
         } else {
-          if (typeof rawstr === 'string') {
-            this.pushString(rawstr);
-            this.expectingNoBlock = true;
-            this.error = null;
+          if (rawstr != -1) {
+            if (rawstr.err) {
+              this.error = rawstr.err;
+            } else {
+              this.pushString(rawstr.str);
+              this.expectingNoBlock = true;
+              this.error = null;
+            }
           } else {
             this.error = this.handleLine(line);
           }

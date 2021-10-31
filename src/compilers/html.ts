@@ -25,13 +25,13 @@ export default class HtmlCompiler extends BaseCompiler {
     return "<" + name + " />";
   }
   
-  private openTag(name: string, kwargs: HtmlKwargs): string {
+  private openTag(name: string, kwargs: HtmlKwargs, closing: boolean = false): string {
     let values = "";
     for (const [key, value] of Object.entries(kwargs)) {
       if (!value) continue;
       values += ` ${key}="${value}"`;
     }
-    return "<" + name + values + ">";
+    return "<" + name + values + (closing ? ' /' : '') + ">";
   }
 
   protected compileLine(obj: ParsedLine): null | string {
@@ -40,7 +40,16 @@ export default class HtmlCompiler extends BaseCompiler {
       this.compiled += this.stringBlock(obj.key);
     } else {
       if (obj.notAttached) {
-        this.compiled += this.openIndependentBlock(obj.key);
+        if (obj.data) {
+          this.compiled += this.openTag(obj.key, obj.data, true);
+        } else {
+          this.compiled += this.openIndependentBlock(obj.key);
+        }
+        if (obj.value !== null) {
+          this.compiled += "\n";
+          this.compiled += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+          this.compiled += this.stringBlock(obj.value);
+        }
       } else {
         if (obj.scopeClose) {
           this.compiled += this.closeBlock(obj.key);

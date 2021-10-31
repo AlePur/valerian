@@ -21,8 +21,8 @@ const logVerbose = (...str: string[]): void => {
 
 const compileFile = (filename: string): Promise<void> => {
   return new Promise((resolve) => {
-    let alreadyfailed = 0;
-    let compiled = "<html>\n";
+    let alreadyfailed: boolean = false;
+    let compiled: string[] = [ "<html>\n" ];
     const comp = new Compiler();
     logVerbose("Compiling", filename, "...");
 
@@ -33,11 +33,14 @@ const compileFile = (filename: string): Promise<void> => {
     readInterface.on('line', (line) => {
       const nline = comp.compile(line);
       if (!compiledWithErrors(nline)) {
-        compiled += nline;
+        if (nline !== -1) {
+          compiled.concat(nline.lines);
+        }
       } else {
         console.log(renderError(nline, filename, true));
-        compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
-        alreadyfailed = 1;
+        let err = new errorHtml(renderError(nline, filename, false));
+        compiled = err.html;
+        alreadyfailed = true;
         readInterface.close();
         process.exit();
       }
@@ -45,11 +48,12 @@ const compileFile = (filename: string): Promise<void> => {
       if (!alreadyfailed) {
         const nline = comp.endOfFile();
         if (!compiledWithErrors(nline)) {
-          compiled += nline;
-          compiled += "</html>";
+          compiled.concat(nline.lines);
+          compiled.concat("</html>");
         } else {
           console.log(renderError(nline, filename, true));
-          compiled = errorHtml.replace("$ERR", renderError(nline, filename, false));
+          let err = new errorHtml(renderError(nline, filename, false));
+          compiled = err.html;
           process.exit();
         }
       }
