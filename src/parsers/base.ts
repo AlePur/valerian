@@ -1,5 +1,5 @@
 import { throws } from "assert";
-import { ParsedLine, ParsedList } from "../header";
+import { ParsedLine, ParsedList, HtmlKwargs } from "../header";
 
 interface KeyValuePair {
   key: string;
@@ -28,10 +28,12 @@ export default class BaseParser {
     this.lineNumber = 0;
   }
 
-  protected getParsedLine(key: string, value: string | null = null, raw: boolean, close: boolean, indent: number = this.indentLevel): ParsedLine {
+  protected getParsedLine(key: string, value: string | null, data: HtmlKwargs | null, raw: boolean, close: boolean, notAttached: boolean, indent: number = this.indentLevel): ParsedLine {
     return {
       key,
       value,
+      data,
+      notAttached: notAttached,
       sourceIndex: this.lineNumber,
       indentLevel: indent,
       rawString: raw,
@@ -74,11 +76,11 @@ export default class BaseParser {
   }
 
   protected openBlock(line: string, value: string): ParsedLine {
-    return this.getParsedLine(line, value, false, false);
+    return this.getParsedLine(line, value, null, false, false, false);
   }
 
   protected closeBlock(line: string, indent: number): ParsedLine {
-    return this.getParsedLine(line, null, false, true, indent);
+    return this.getParsedLine(line, null, null, false, true, false, indent);
   }
 
   protected handleFinish(): null | string {
@@ -101,8 +103,9 @@ export default class BaseParser {
   protected handleLineEnd(indent: number): null | string {
     const len = this.openBlocks.length;
     let i = 0;
+    const c = Number(this.ignoreLine);
     let z = 1;
-    for(i = 0; i <= ((this.indentLevel) - (indent + Number(this.ignoreLine))); i++) {
+    for(i = 0; i <= ((this.indentLevel) - (indent + c)); i++) {
       const ind = (this.openBlocks.length - z);
       if (ind < 0) break;
       if (this.openBlocks[ind] == "_reserved") {
@@ -111,21 +114,18 @@ export default class BaseParser {
         this.openBlocks.splice(ind, 1);
       } else if (this.openBlocks[ind] !== undefined) {
         let oldtag = this.openBlocks.splice(ind, 1)[0];
-        this.parsed[i] = this.closeBlock(oldtag, (this.indentLevel - (i)));
+        this.parsed[i] = this.closeBlock(oldtag, (this.indentLevel - (i + c)));
       } else {
         return "Indentation error"
       }
     }
     this.parsed = this.parsed.filter(x => x !== undefined);
+    return null;
   }
 
   protected pushString(str: string): void {
-    this.parsed.push(this.getParsedLine(str, null, true, false));
+    this.parsed.push(this.getParsedLine(str, null, null, true, false, false));
     this.openBlocks.push("__reserved");
-  }
-
-  protected checkConstants(line: string): string | null | -1 {
-    return null;
   }
 
   private getString(str: string): string | -1 | -2 {
@@ -140,18 +140,10 @@ export default class BaseParser {
   }
 
   protected handleLine(line: string): null | string {
-    const constants = this.checkConstants(line);
-    if (constants == -1) {
-      return null;
-    }
-    if (typeof constants === 'string') {
-      return constants;
-    }
-
     const pair = this.getKeyValuePair(line);
     if (pair == -1) {
       //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, true, false));
+      this.parsed.push(this.getParsedLine(line, null, null, false, false, true));
       this.openBlocks.push("__reserved");
       this.expectingNoBlock = true;
       return null;
@@ -203,11 +195,12 @@ export default class BaseParser {
         const rawstr = this.getString(line);
 
         if (line[0] == " " || line[0] == "\t") {
-          this.error = "Unexpected whitespace"
+          this.error = "Unexpected whitespace, possible cause is mixed tabs and spaces"
         } else {
           if (typeof rawstr === 'string') {
             this.pushString(rawstr);
             this.expectingNoBlock = true;
+            this.error = null;
           } else {
             this.error = this.handleLine(line);
           }

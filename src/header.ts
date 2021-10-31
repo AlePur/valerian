@@ -19,6 +19,9 @@ $ERR
   </body>
 </html>`;
 export type ParserType = BaseParser | CssParser | HtmlParser;
+export interface HtmlKwargs {
+  id?: string;
+}
 export interface CompileError {
   message: string;
   trace: string;
@@ -31,9 +34,11 @@ export interface CompiledLine {
 export interface ParsedLine {
   key: string;
   value: string | null;
+  data: HtmlKwargs | null;
+  notAttached: boolean;
   sourceIndex: number;
-  rawString: true | false;
-  scopeClose: true | false;
+  rawString: boolean;
+  scopeClose: boolean;
   indentLevel: number;
 }
 export interface ParsedList {

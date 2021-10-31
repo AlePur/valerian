@@ -3,7 +3,7 @@ html:
         title: "My Valerian.js Website"
     body:
         (Header
-            h1: "Welcomde!"
+            h1: "Welcome!"
         )
         (Content
             p Emoji: "😊"
@@ -20,8 +20,3 @@ html:
                 label: "Last name:"
                 input
             )
-style:
-    body.Header:
-        h1:
-            font-size: "40px"
-            color: "blue"

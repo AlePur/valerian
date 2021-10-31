@@ -2,6 +2,7 @@ html:
     head:
         title: "Test website"
         (
+            "r"
         )
     body:
         (Header
@@ -28,3 +29,5 @@ html:
                 i: "Goor"
             )
         )
+style:
+    "d"

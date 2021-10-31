@@ -72,6 +72,8 @@ export default class Compiler {
     //let parsed = this.htmlParser[action](line, this.indentLevel);
     if (parsed.error) {
       return throwError(parsed.error, line, this.lineNumber);
+    } else if (parsed.error !== null) {
+      return throwError("Unexpected exception", line, this.lineNumber);
     }
     return parsed.line;
   }

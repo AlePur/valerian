@@ -56,7 +56,7 @@ export default class BaseCompiler {
       };
     }
 
-    console.log(list);
+    //console.log(list);
 
     for (let i = 0; i < list.lines.length; i++) {
       const obj = list.lines[i];

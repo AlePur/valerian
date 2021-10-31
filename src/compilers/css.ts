@@ -35,8 +35,17 @@ export default class CssCompiler extends BaseCompiler {
           this.ignoreNext = false;
         }
       } else {
-        const key = (obj.key).replace(/\./g, ' ');
+        const keyArray = (obj.key).split(".");
+        let key = "";
         this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
+        for (let i = 0; i < keyArray.length; i++) {
+          if (keyArray[i][0] === keyArray[i][0].toUpperCase()) {
+            key += "#";
+          }
+          key += keyArray[i] + " ";
+        }
+        // remove whitespace
+        key = key.slice(0, key.length - 1);
         if (obj.value !== null) {
           this.compiled += key;
           this.compiled += ": ";
