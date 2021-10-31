@@ -1,4 +1,4 @@
-import { ParsedList, ParsedLine, CompiledRegion, ParserType } from "../header";
+import { ParsedList, ParsedLine, CompiledRegion, ParserType, CompileError } from "../header";
 import BaseParser from "../parsers/base";
 
 export default class BaseCompiler {
@@ -42,29 +42,27 @@ export default class BaseCompiler {
       } else {
         tmp += this.openBlock(obj.key);
         if (obj.value !== null) {
-          tmp += "\n";
-          tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+          this.compiled.push(tmp);
+          tmp = "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
           tmp += this.stringBlock(obj.value);
         }
       }
     }
+    this.compiled.push(tmp);
     return null;
   }
 
-  protected handleParsed(list: ParsedList): CompiledLine {
+  protected handleParsed(list: ParsedList): null | string {
     if (list.error) {
-      return {
-        line: "",
-        error: list.error
-      };
+      return list.error;
     }
 
-    //console.log(list);
+    //console.log(list)
 
     for (let i = 0; i < list.lines.length; i++) {
       const obj = list.lines[i];
       if (obj.indentLevel < 1) {
-        this.error = "Indent error";
+        return "Indent error";
       }
 
       if (!this.error) {
@@ -74,23 +72,27 @@ export default class BaseCompiler {
       }
     }
 
-    return {
-      line: this.compiled,
-      error: this.error
-    };
+    if (this.error) return this.error;
+
+    return null;
   }
 
-  public finish(): CompiledLine {
-    this.compiled = "";
+  public finish(): CompiledRegion | string {
     this.error = null;
 
     const result = this.parser.finish();
+    this.error = this.handleParsed(result);
 
-    return this.handleParsed(result);
+    if (this.error) {
+      return this.error;
+    }
+
+    return {
+      lines: this.compiled
+    }
   }
 
-  public compile(line: string, indent: number, lineNumber: number): CompiledLine {
-    this.compiled = "";
+  public compile(line: string, indent: number, lineNumber: number): string | null {
     this.error = null;
     //this.line = line;
 

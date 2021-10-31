@@ -22,7 +22,7 @@ const logVerbose = (...str: string[]): void => {
 const compileFile = (filename: string): Promise<void> => {
   return new Promise((resolve) => {
     let alreadyfailed: boolean = false;
-    let compiled: string[] = [ "<html>\n" ];
+    let compiled: string[] = [ "<html>" ];
     const comp = new Compiler();
     logVerbose("Compiling", filename, "...");
 
@@ -33,8 +33,9 @@ const compileFile = (filename: string): Promise<void> => {
     readInterface.on('line', (line) => {
       const nline = comp.compile(line);
       if (!compiledWithErrors(nline)) {
+        //ON REGION CHANGE
         if (nline !== -1) {
-          compiled.concat(nline.lines);
+          compiled = compiled.concat(nline.lines);
         }
       } else {
         console.log(renderError(nline, filename, true));
@@ -48,8 +49,7 @@ const compileFile = (filename: string): Promise<void> => {
       if (!alreadyfailed) {
         const nline = comp.endOfFile();
         if (!compiledWithErrors(nline)) {
-          compiled.concat(nline.lines);
-          compiled.concat("</html>");
+          compiled = compiled.concat(nline.lines, ["</html>"]);
         } else {
           console.log(renderError(nline, filename, true));
           let err = new errorHtml(renderError(nline, filename, false));
@@ -58,7 +58,7 @@ const compileFile = (filename: string): Promise<void> => {
         }
       }
 
-      writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled);
+      writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled.join("\n"));
       resolve();
     });
   });

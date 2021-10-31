@@ -37,7 +37,7 @@ export default class Compiler {
   }
 
   private switchRegion(region: Region, line: string): CompiledRegion | CompileError {
-    let nline: CompiledRegion | CompileError | -1;
+    let nline: CompiledRegion | CompileError | -1 = { lines: [] };
     if (this.indentLevel != 0) {
       return throwError("Style and script tags are not allowed in the scope of another language", line, this.lineNumber);
     }
@@ -60,12 +60,13 @@ export default class Compiler {
         this.baseIndent = 0;
       }
     }
+
     return nline;
   }
 
   private parseLine(action: string, line: string = ""): CompiledRegion | CompileError | -1 {
     let nline = "";
-    let parsed: CompiledRegion | -1 | string;
+    let parsed: CompiledRegion | null | string;
     if (this.region == "html") {
       parsed = ((action == "parse") ? this.htmlParser.compile(line, this.indentLevel, this.lineNumber) : this.htmlParser.finish());
     } else if (this.region == "css") {
@@ -73,9 +74,13 @@ export default class Compiler {
     } else {
       return throwError("Unexpected exception", line, this.lineNumber);
     }
+
     //let parsed = this.htmlParser[action](line, this.indentLevel);
     if (typeof parsed === "string") {
       return throwError(parsed, line, this.lineNumber);
+    }
+    if (parsed === null) {
+      return -1;
     }
     return parsed;
   }
@@ -94,6 +99,7 @@ export default class Compiler {
         nline.lines.push("\t</script>");
       }
     }
+
     return nline;
   }
 

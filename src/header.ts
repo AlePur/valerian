@@ -10,7 +10,7 @@ export class errorHtml {
   html: string[];
 
   constructor(err) {
-    html: (`<html>
+    this.html = (`<html>
     <head>
       <title>
         Compilation error

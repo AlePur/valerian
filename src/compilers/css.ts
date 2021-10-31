@@ -1,4 +1,4 @@
-import { ParsedLine, CompiledLine } from "../header";
+import { ParsedLine } from "../header";
 import BaseCompiler from "./base";
 import CssParser from "../parsers/css";
 
@@ -8,7 +8,7 @@ export default class CssCompiler extends BaseCompiler {
 
   constructor() {
     super();
-    this.storedKey = null;
+    this.storedKey = "";
     this.parser = new CssParser();
     this.baseIndent = 1;
     this.ignoreNext = false;
@@ -18,8 +18,13 @@ export default class CssCompiler extends BaseCompiler {
     return name;
   }
 
-  private completePreviousBlock(): string {
-    
+  private completePreviousBlock(): string | null {
+    // weird check
+    if (this.compiled.length < 1) {
+      return "Syntax error";
+    }
+    this.compiled[this.compiled.length - 1] += " {";
+    return null;
   }
 
   protected closeBlock(name: string): string {
@@ -27,34 +32,36 @@ export default class CssCompiler extends BaseCompiler {
   }
 
   protected compileLine(obj: ParsedLine): null | string {
+    let tmp = "";
+    let storedKey = null;
+    if (this.scope.length != 0) {
+      let t = this.scope[this.scope.length - 1].split(" ");
+      storedKey = t[t.length - 1];
+    }
     if (obj.rawString) {
-      if (this.storedKey == null) {
+      if (storedKey == null) {
         return "Unexpected string"
       }
-      this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
-      this.compiled += this.storedKey;
-      this.compiled += ": ";
-      this.compiled += obj.key;
-      this.compiled += ";";
-      this.storedKey = null;
-      this.compiled += "\n";
+      this.error = this.completePreviousBlock();
+      if (this.error) return this.error;
+      tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
+      tmp += storedKey;
+      tmp += ": ";
+      tmp += obj.key;
+      tmp += ";";
     } else {
       if (obj.scopeClose) {
-        if (this.storedKey != null) {
-          //return "Empty blocks are not allowed"
-        }
         this.scope.pop();
         if (!this.ignoreNext) {
-          this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
-          this.compiled += this.closeBlock(obj.key);
-          this.compiled += "\n";
+          tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
+          tmp += this.closeBlock(obj.key);
         } else {
           this.ignoreNext = false;
         }
       } else {
-        if (this.storedKey == null) {
-          //return "Nesting css keywords is not allowed"
-        }
+        /*if (this.storedKey == null) {
+          return "Nesting css keywords is not allowed"
+        }*/
         const checkIfId = (_key: string): string => {
           if (_key[0] === _key[0].toUpperCase()) {
             return "#";
@@ -63,12 +70,12 @@ export default class CssCompiler extends BaseCompiler {
         }
 
         const keyArray = (obj.key).split(".");
-        let nextStoredKey = "";
         let key = "";
-        this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
+        tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
+        let nextStoredKey: string = "";
         for (let i = 0; i < keyArray.length; i++) {
           if (i == keyArray.length - 1) {
-            nextStoredKey = checkIfId(keyArray[i]) + keyArray[i];
+            nextStoredKey = " " + checkIfId(keyArray[i]) + keyArray[i];
             break;
           }
           key += checkIfId(keyArray[i]);
@@ -76,24 +83,23 @@ export default class CssCompiler extends BaseCompiler {
         }
         // remove whitespace
         key = key.slice(0, key.length - 1);
-        if (this.storedKey !== null) {
-          key += this.storedKey;
+        if (storedKey !== null) {
+          key += storedKey;
         }
-        this.scope.push(key)
+        this.scope.push(key + nextStoredKey)
         if (obj.value !== null) {
-          this.compiled += key;
-          this.compiled += ": ";
-          this.compiled += obj.value;
-          this.compiled += ";";
+          tmp += key;
+          tmp += ": ";
+          tmp += obj.value;
+          tmp += ";";
           this.ignoreNext = true;
         } else {
-          this.compiled += this.openBlock(key);
-          this.storedKey = nextStoredKey;
+          tmp += this.openBlock(key);
         }
         console.log(this.scope)
-        this.compiled += "\n";
       }
     }
+    this.compiled.push(tmp);
     return null;
   }
 }

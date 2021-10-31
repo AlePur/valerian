@@ -35,39 +35,43 @@ export default class HtmlCompiler extends BaseCompiler {
   }
 
   protected compileLine(obj: ParsedLine): null | string {
-    this.compiled += "\t".repeat(obj.indentLevel + this.baseIndent);
+    //console.log(obj)
+    let tmp: string = "";
+    tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
     if (obj.rawString) {
-      this.compiled += this.stringBlock(obj.key);
+      tmp += this.stringBlock(obj.key);
     } else {
       if (obj.notAttached) {
         if (obj.data) {
-          this.compiled += this.openTag(obj.key, obj.data, true);
+          tmp += this.openTag(obj.key, obj.data, true);
         } else {
-          this.compiled += this.openIndependentBlock(obj.key);
+          tmp += this.openIndependentBlock(obj.key);
         }
         if (obj.value !== null) {
-          this.compiled += "\n";
-          this.compiled += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
-          this.compiled += this.stringBlock(obj.value);
+          this.compiled.push(tmp);
+          tmp = "";
+          tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+          tmp += this.stringBlock(obj.value);
         }
       } else {
         if (obj.scopeClose) {
-          this.compiled += this.closeBlock(obj.key);
+          tmp += this.closeBlock(obj.key);
         } else {
           if (obj.data) {
-            this.compiled += this.openTag(obj.key, obj.data);
+            tmp += this.openTag(obj.key, obj.data);
           } else {
-            this.compiled += this.openBlock(obj.key);
+            tmp += this.openBlock(obj.key);
           }
           if (obj.value !== null) {
-            this.compiled += "\n";
-            this.compiled += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
-            this.compiled += this.stringBlock(obj.value);
+            this.compiled.push(tmp);
+            tmp = "";
+            tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+            tmp += this.stringBlock(obj.value);
           }
         }
       }
     }
-    this.compiled += "\n";
+    this.compiled.push(tmp);
     return null;
   }
 }
