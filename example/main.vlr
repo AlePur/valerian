@@ -1,17 +1,23 @@
-var = "red"
+@import btn
+red = "red"
+mocca = "#770044"
+smiley = "😊"
+yomu = "10px"
 
+script:
+    let joy = "del";
 html:
     head:
         title: "My Valerian.js Website"
     body:
+        "My button: "
+        @btn
         (Header
             h1: "Welcomde!"
         )
         (Content
-            p Emoji: "😊"
-            li:
-                a:
-                    "dd"
+            p Emoji: &smiley
+            p Color: "My favorite color: "
         )
         form:
             (
@@ -24,9 +30,4 @@ html:
             )
 style:
     body:
-        Content.p.color: &var
-        Header:
-            color:
-            h1:
-                font-size: "7px"
-                color: "blue"
+        .red.color:&red

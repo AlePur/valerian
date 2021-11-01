@@ -1,99 +1,89 @@
-import getString from "./parsers/base"
+import { getString } from "./preprocessors/base"
+import { declareImport } from "./index"
+import { CompileError } from "./header"
+import * as path from "path"
+import { existsSync } from "fs";
 
 export interface CompiledDefscript {
-  name: string;
-  value: string | null;
+  [key: string]: string
 }
 
-export default class DefscriptCompiler {
-  compiled: CompiledDefscript[];
+class DefscriptCompiler {
+  compiled: CompiledDefscript;
   indentLevel: number;
+  directory: string;
   error: null | string;
   lineNumber: number;
 
   constructor() {
-    this.indentLevel = 1;
-    this.compiled = []
+    this.indentLevel = 0;
+    this.compiled = {};
     this.error = null;
     this.lineNumber = 0;
   }
 
-  protected handleLine(line: string): null | string {
-    const pair = this.getKeyValuePair(line);
-    if (pair == -1) {
-      //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, null, false, false, true));
-      this.openBlocks.push("__reserved");
-      this.expectingNoBlock = true;
-      return null;
-    }
-
-    if (pair.error !== null) {
-      return pair.error;
-    }
-
-    this.openBlocks.push(pair.key);
-    this.parsed.push(this.openBlock(pair.key, pair.value));
-    return null;
+  public setDirectory(dir: string) {
+    this.directory = dir;
   }
 
-  public finish(): ParsedList {
-    this.parsed = [];
-    this.error = null;
-
-    this.error = this.handleFinish();
-
-    return {
-      lines: this.parsed,
-      error: this.error
-    };
+  public resolveVariable(name: string): string | number | undefined {
+    return this.compiled[name];
   }
 
-  public parse(line: string, indent: number, lineNumber: number): ParsedList {
+  public async parse(line: string, indent: number, lineNumber: number): Promise<string | null | CompileError> {
     this.lineNumber = lineNumber;
-    this.parsed = [];
     this.error = null;
     //console.log(this.openBlocks)
 
-    if (indent <= this.indentLevel && this.expectingBlock) {
-      this.error = "Expected an indented block"
-    } else if (indent > this.indentLevel && this.expectingNoBlock) {
-      this.error = "Unexpected block indent"
-    }
-    this.expectingBlock = false;
-    this.expectingNoBlock = false;
-
     if (!this.error) {
-      if (indent <= this.indentLevel) {
-        this.error = this.handleLineEnd(indent);
-      }
-      this.indentLevel = indent;
-      this.ignoreLine = false;
+      //this.indentLevel = indent;
 
-      if (!this.error) {
-        const rawstr = this.getString(line);
-
-        if (line[0] == " " || line[0] == "\t") {
-          this.error = "Unexpected whitespace, possible cause is mixed tabs and spaces"
-        } else {
-          if (rawstr != -1) {
-            if (rawstr.err) {
-              this.error = rawstr.err;
-            } else {
-              this.pushString(rawstr.str);
-              this.expectingNoBlock = true;
-              this.error = null;
-            }
+      if (line[0] == " " || line[0] == "\t") {
+        this.error = "Unexpected whitespace, possible cause is mixed tabs and spaces"
+      } else if (line[0] == "@") {
+        const pair = line.split(" ")
+        if (pair.length != 2) {
+          return this.error = "No arguments provided";
+        }
+        let arg = pair[1].trim();
+        let action = pair[0].trim().slice(1);
+        if (action == "import") {
+          if (arg.indexOf(".vlr") == -1) {
+            arg += ".vlr"
+          }
+          const importPath = path.join(this.directory, arg);
+          if (!existsSync(importPath)) {
+            return "File does not exist";
+          }
+          const _import = await declareImport(importPath);
+          if (_import !== true) {
+            return _import;
+          }
+        }
+      } else {
+        if (line.trim() != "") {
+          let pair = line.split("=");
+          let key = pair[0].trim();
+          if (pair.length != 2 || key == '') {
+            this.error = "Syntax error"
           } else {
-            this.error = this.handleLine(line);
+            let value = getString(pair[1].trim());
+            if (value == -1) {
+              return this.error = "Expected a string";
+            } else if (value.err !== null) {
+              return this.error = value.err;
+            }
+            if (this.compiled[key] !== undefined) {
+              return this.error = "Variable redefinition not permitted"
+            }
+            this.compiled[key] = value.str;
           }
         }
       }
     }
 
-    return {
-      lines: this.parsed,
-      error: this.error
-    };
+    return this.error;
   }
 }
+
+export const Defscript = new DefscriptCompiler();
