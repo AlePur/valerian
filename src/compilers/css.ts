@@ -6,12 +6,14 @@ export default class CssCompiler extends BaseCompiler {
   ignoreNext: boolean;
   scope: Array<string[]>;
   stringOnlyBlock: boolean;
+  previousScope: string;
 
   constructor() {
     super();
     this.parser = new CssParser();
     this.baseIndent = 1;
     this.stringOnlyBlock = false;
+    this.previousScope = "_RES";
     this.scope = [];
     this.ignoreNext = false;
   }
@@ -34,8 +36,14 @@ export default class CssCompiler extends BaseCompiler {
   }
 
   protected compileLine(obj: ParsedLine): null | string {
-    console.log(this.scope)
     let tmp = "";
+    const closeScope = (): void => {
+      tmp += "\t".repeat(1 + this.baseIndent);
+      tmp += this.closeBlock(obj.key);
+      this.compiled.push(tmp);
+      tmp = "";
+    }
+
     if (obj.rawString) {
       let strScope = ""
       for (let i = 0; i < this.scope.length; i++) {
@@ -54,19 +62,20 @@ export default class CssCompiler extends BaseCompiler {
         this.compiled.push(tmp);
         tmp = "";
       }
-      tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
+      tmp += "\t".repeat(2 + this.baseIndent);
       tmp += lastKey;
       tmp += ": ";
       tmp += obj.key;
       tmp += ";";
       this.stringOnlyBlock = true;
+      this.ignoreNext = true;
     } else {
       if (obj.scopeClose) {
         this.stringOnlyBlock = false;
         this.scope.pop();
         if (!this.ignoreNext) {
-          tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
-          tmp += this.closeBlock(obj.key);
+          closeScope();
+          this.ignoreNext = true;
         } else {
           this.ignoreNext = false;
         }
@@ -92,33 +101,58 @@ export default class CssCompiler extends BaseCompiler {
           key[i] = checkIfId(keyArray[i]);
           key[i] += keyArray[i];
         }
+
         let strScope = ""
         for (let i = 0; i < this.scope.length; i++) {
           strScope += this.scope[i].join(" ") + " ";
         }
+        if (key.length > 1) {
+          for (let i = 0; i < key.length - 1; i++) {
+            strScope += key[i] + " ";
+          }
+        }
+
         strScope = strScope.slice(0, strScope.length - 1);
-        this.scope.push(key)
+
+        let familiarScope: boolean = false;
+        if (this.previousScope == strScope) {
+          familiarScope = true;
+        }
+        this.previousScope = strScope;
+        this.scope.push(key);
+
         if (obj.value !== null) {
-          if (strScope != "") {
-            console.log(strScope)
-            // since you pushed new scope -1
-            tmp += "\t".repeat(obj.indentLevel + this.baseIndent - (this.scope.length - 1));
-            tmp += this.openBlock(strScope);
-            this.compiled.push(tmp);
-            tmp = "";
+          if (familiarScope == false) {
+            if (strScope != "") {
+              if (this.ignoreNext == false) {
+                closeScope();
+              }
+              // since you pushed new scope -1
+              tmp += "\t".repeat(obj.indentLevel + this.baseIndent - (this.scope.length - 1));
+              tmp += this.openBlock(strScope);
+              this.compiled.push(tmp);
+              tmp = "";
+            }
           }
           tmp += "\t".repeat(2 + this.baseIndent) //obj.indentLevel + this.baseIndent);
-          tmp += key;
+          if (key.length > 1) {
+            tmp += key[key.length - 1];
+          } else {
+            tmp += key[0];
+          }
           tmp += ": ";
           tmp += obj.value;
           tmp += ";";
           this.ignoreNext = true;
         } else {
+          this.ignoreNext = false;
           return null;
         }
       }
     }
-    this.compiled.push(tmp);
+    if (tmp != "") {
+      this.compiled.push(tmp);
+    }
     return null;
   }
 }
