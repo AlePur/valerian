@@ -1,3 +1,5 @@
+var = "red"
+
 html:
     head:
         title: "My Valerian.js Website"
@@ -21,16 +23,10 @@ html:
                 input
             )
 style:
-    body.Content.p.color: 
-        "red"
-    body.Header:
-        color: "red"
-        h1:
-            font-size: "7px"
-            color: "blue"
-        h2.font-size: "10px"
-        h3:
-            p: 
-                color: "wallow"
-            li:
-                distance-style: "rey"
+    body:
+        Content.p.color: &var
+        Header:
+            color:
+            h1:
+                font-size: "7px"
+                color: "blue"

@@ -1,9 +1,9 @@
-import { ParsedLine } from "../header";
+import { ParsedLine, CompiledRegion } from "../header";
 import BaseCompiler from "./base";
 import CssParser from "../parsers/css";
 
 export default class CssCompiler extends BaseCompiler {
-  ignoreNext: boolean;
+  blockIsOpen: boolean;
   scope: Array<string[]>;
   stringOnlyBlock: boolean;
   previousScope: string;
@@ -15,7 +15,7 @@ export default class CssCompiler extends BaseCompiler {
     this.stringOnlyBlock = false;
     this.previousScope = "_RES";
     this.scope = [];
-    this.ignoreNext = false;
+    this.blockIsOpen = false;
   }
   
   protected openBlock(name: string): string {
@@ -31,15 +31,41 @@ export default class CssCompiler extends BaseCompiler {
   //   return null;
   // }
 
+  public finish(): CompiledRegion | string {
+    this.error = null;
+
+    const result = this.parser.finish();
+
+    if (this.blockIsOpen) {
+      this.compiled.push("\t".repeat(1 + this.baseIndent)+"}");
+    }
+
+    if (this.error) {
+      return this.error;
+    }
+
+    return {
+      lines: this.compiled
+    }
+  }
+
   protected closeBlock(name: string): string {
     return "}";
   }
 
   protected compileLine(obj: ParsedLine): null | string {
+    //console.log(this.scope, this.stringOnlyBlock, this.blockIsOpen)
     let tmp = "";
     const closeScope = (): void => {
+      this.stringOnlyBlock = false;
       tmp += "\t".repeat(1 + this.baseIndent);
       tmp += this.closeBlock(obj.key);
+      this.compiled.push(tmp);
+      tmp = "";
+    }
+    const openScope = (s: string): void => {
+      tmp += "\t".repeat(1 + this.baseIndent);
+      tmp += this.openBlock(s);
       this.compiled.push(tmp);
       tmp = "";
     }
@@ -56,11 +82,9 @@ export default class CssCompiler extends BaseCompiler {
       let tmpArray = strScope.split(" ");
       let lastKey = tmpArray.pop();
       strScope = tmpArray.join(" ");
-      if (this.stringOnlyBlock == false) {
-        tmp += "\t".repeat(obj.indentLevel + this.baseIndent - this.scope.length);
-        tmp += this.openBlock(strScope);
-        this.compiled.push(tmp);
-        tmp = "";
+      if (this.blockIsOpen == false) {
+        openScope(strScope);
+        this.blockIsOpen = true;
       }
       tmp += "\t".repeat(2 + this.baseIndent);
       tmp += lastKey;
@@ -68,21 +92,10 @@ export default class CssCompiler extends BaseCompiler {
       tmp += obj.key;
       tmp += ";";
       this.stringOnlyBlock = true;
-      this.ignoreNext = true;
     } else {
       if (obj.scopeClose) {
-        this.stringOnlyBlock = false;
         this.scope.pop();
-        if (!this.ignoreNext) {
-          closeScope();
-          this.ignoreNext = true;
-        } else {
-          this.ignoreNext = false;
-        }
       } else {
-        if (this.stringOnlyBlock == true) {
-          return "Nesting css keywords is not allowed"
-        }
         const checkIfId = (_key: string): string => {
           if (_key[0] === _key[0].toUpperCase()) {
             return "#";
@@ -124,14 +137,15 @@ export default class CssCompiler extends BaseCompiler {
         if (obj.value !== null) {
           if (familiarScope == false) {
             if (strScope != "") {
-              if (this.ignoreNext == false) {
+              if (this.blockIsOpen) {
                 closeScope();
               }
               // since you pushed new scope -1
-              tmp += "\t".repeat(obj.indentLevel + this.baseIndent - (this.scope.length - 1));
-              tmp += this.openBlock(strScope);
-              this.compiled.push(tmp);
-              tmp = "";
+              openScope(strScope);
+            }
+          } else {
+            if (this.stringOnlyBlock == true) {
+              return "Nesting css keywords is not allowed"
             }
           }
           tmp += "\t".repeat(2 + this.baseIndent) //obj.indentLevel + this.baseIndent);
@@ -143,9 +157,9 @@ export default class CssCompiler extends BaseCompiler {
           tmp += ": ";
           tmp += obj.value;
           tmp += ";";
-          this.ignoreNext = true;
+          //this.ignoreNext = true;
+          this.blockIsOpen = true;
         } else {
-          this.ignoreNext = false;
           return null;
         }
       }

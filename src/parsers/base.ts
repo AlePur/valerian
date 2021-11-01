@@ -1,4 +1,3 @@
-import { throws } from "assert";
 import { ParsedLine, ParsedList, HtmlKwargs } from "../header";
 
 interface KeyValuePair {

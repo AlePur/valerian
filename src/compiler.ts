@@ -1,8 +1,9 @@
 import { CompileError, CompiledRegion, ParsedLine, ParsedList, compiledWithErrors } from "./header";
 import CssCompiler from "./compilers/css";
 import HtmlCompiler from "./compilers/html";
+import DefscriptCompiler from "./defscript";
 
-type Region = "html" | "css" | "js";
+type Region = "html" | "css" | "js" | "pre";
 
 const throwError = (message: string, trace: string, line: number): CompileError => {
   return {
@@ -24,6 +25,7 @@ export default class Compiler {
   baseIndent: number;
   htmlParser: HtmlCompiler;
   cssParser: CssCompiler;
+  preParser: DefscriptCompiler;
   region: Region;
 
   constructor() {
@@ -33,7 +35,8 @@ export default class Compiler {
     this.baseIndent = 0;
     this.htmlParser = new HtmlCompiler();
     this.cssParser = new CssCompiler();
-    this.region = "js";
+    this.preParser = new DefscriptCompiler();
+    this.region = "pre";
   }
 
   private switchRegion(region: Region, line: string): CompiledRegion | CompileError {
@@ -41,7 +44,7 @@ export default class Compiler {
     if (this.indentLevel != 0) {
       return throwError("Style and script tags are not allowed in the scope of another language", line, this.lineNumber);
     }
-    if (this.region != "js") {
+    if (this.region != "js" && this.region != "pre") {
       nline = this.parseLine("finish");
     }
     if (nline === -1) {
@@ -71,6 +74,8 @@ export default class Compiler {
       parsed = ((action == "parse") ? this.htmlParser.compile(line, this.indentLevel, this.lineNumber) : this.htmlParser.finish());
     } else if (this.region == "css") {
       parsed = ((action == "parse") ? this.cssParser.compile(line, this.indentLevel, this.lineNumber) : this.cssParser.finish());
+    } else if (this.region == "pre") {
+      parsed = ((action == "parse") ? this.preParser.compile(line, this.indentLevel, this.lineNumber) : this.preParser.finish());
     } else {
       return throwError("Unexpected exception", line, this.lineNumber);
     }
