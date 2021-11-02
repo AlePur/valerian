@@ -1,5 +1,6 @@
 import { ParsedLine, CompiledRegion } from "../header";
 import BaseCompiler from "./base";
+import DefscriptCompiler from "../defscript"
 import CssParser from "../preprocessors/css";
 
 export default class CssCompiler extends BaseCompiler {
@@ -8,9 +9,9 @@ export default class CssCompiler extends BaseCompiler {
   stringOnlyBlock: boolean;
   previousScope: string;
 
-  constructor() {
+  constructor(pparser: DefscriptCompiler) {
     super();
-    this.parser = new CssParser();
+    this.parser = new CssParser(pparser);
     this.baseIndent = 1;
     this.stringOnlyBlock = false;
     this.previousScope = "_RES";

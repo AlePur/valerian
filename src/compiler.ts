@@ -2,7 +2,7 @@ import { CompileError, CompiledRegion, ParsedLine, ParsedList, compiledWithError
 import CssCompiler from "./parsers/css";
 import HtmlCompiler from "./parsers/html";
 import JsCompiler from "./parsers/js";
-import { Defscript } from "./defscript";
+import DefscriptCompiler from "./defscript";
 
 type Region = "html" | "css" | "js" | "pre";
 
@@ -20,7 +20,7 @@ export default class Compiler {
   htmlParser: HtmlCompiler;
   jsParser: JsCompiler;
   cssParser: CssCompiler;
-  preParser: typeof Defscript;
+  preParser: DefscriptCompiler;
   region: Region;
 
   constructor(directory: string, name: string) {
@@ -28,8 +28,7 @@ export default class Compiler {
     this.indentLevel = 0;
     this.indent = "";
     this.baseIndent = 0;
-    this.preParser = Defscript;
-    this.preParser.setDirectory(directory);
+    this.preParser = new DefscriptCompiler(directory);
     this.filename = name;
     this.region = "pre";
   }
@@ -67,12 +66,12 @@ export default class Compiler {
       if (region == "css") {
         this.baseIndent = 1;
         nline.lines.push("\t<style>");
-        this.cssParser = new CssCompiler();
+        this.cssParser = new CssCompiler(this.preParser);
       } else if (region == "html") {
         this.baseIndent = 0;
-        this.htmlParser = new HtmlCompiler();
+        this.htmlParser = new HtmlCompiler(this.preParser);
       } else if (region == "js") {
-        this.jsParser = new JsCompiler();
+        this.jsParser = new JsCompiler(this.preParser);
         nline.lines.push("\t<script>");
       }
     }
@@ -84,6 +83,9 @@ export default class Compiler {
     let err = await this.preParser.parse(line, this.indentLevel, this.lineNumber);
     if (typeof err === "string") {
       return this.throwError(err, line, this.lineNumber);
+    }
+    if (err === null) {
+      return -1;
     }
     if (compiledWithErrors(err)) {
       return err;

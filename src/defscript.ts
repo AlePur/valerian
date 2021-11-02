@@ -8,22 +8,19 @@ export interface CompiledDefscript {
   [key: string]: string
 }
 
-class DefscriptCompiler {
+export default class DefscriptCompiler {
   compiled: CompiledDefscript;
   indentLevel: number;
   directory: string;
   error: null | string;
   lineNumber: number;
 
-  constructor() {
+  constructor(dir: string) {
     this.indentLevel = 0;
     this.compiled = {};
+    this.directory = dir;
     this.error = null;
     this.lineNumber = 0;
-  }
-
-  public setDirectory(dir: string) {
-    this.directory = dir;
   }
 
   public resolveVariable(name: string): string | number | undefined {
@@ -43,7 +40,7 @@ class DefscriptCompiler {
       } else if (line[0] == "@") {
         const pair = line.split(" ")
         if (pair.length != 2) {
-          return this.error = "No arguments provided";
+          return "No arguments provided";
         }
         let arg = pair[1].trim();
         let action = pair[0].trim().slice(1);
@@ -69,12 +66,12 @@ class DefscriptCompiler {
           } else {
             let value = getString(pair[1].trim());
             if (value == -1) {
-              return this.error = "Expected a string";
+              return "Expected a string";
             } else if (value.err !== null) {
-              return this.error = value.err;
+              return value.err;
             }
             if (this.compiled[key] !== undefined) {
-              return this.error = "Variable redefinition not permitted"
+              return "Variable redefinition not permitted"
             }
             this.compiled[key] = value.str;
           }
@@ -85,5 +82,3 @@ class DefscriptCompiler {
     return this.error;
   }
 }
-
-export const Defscript = new DefscriptCompiler();

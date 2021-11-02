@@ -1,5 +1,6 @@
 import { ParsedLine } from "../header";
 import BaseCompiler from "./base";
+import DefscriptCompiler from "../defscript"
 import HtmlParser from "../preprocessors/html";
 
 export interface HtmlKwargs {
@@ -8,9 +9,9 @@ export interface HtmlKwargs {
 
 export default class HtmlCompiler extends BaseCompiler {
   
-  constructor() {
+  constructor(pparser: DefscriptCompiler) {
     super();
-    this.parser = new HtmlParser();
+    this.parser = new HtmlParser(pparser);
   }
 
   protected openBlock(name: string): string {

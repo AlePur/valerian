@@ -1,7 +1,9 @@
+red = "green"
+
 html:
 	(Wrap
 		button Button: "Click"
-		d:
+		d
 	)
 style:
 	Button:

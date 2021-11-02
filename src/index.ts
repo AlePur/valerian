@@ -20,6 +20,7 @@ interface Imports {
 }
 
 const imports: Imports = {};
+const beingCompiled: string[] = [];
 
 const logVerbose = (...str: string[]): void => {
   console.log(...str);
@@ -30,9 +31,23 @@ export const fetchImport = (filename: string): string[] => {
 }
 
 export const declareImport = async (filename: string): Promise<true | CompileError> => {
+  if (imports[filename] !== undefined) {
+    return true;
+  }
+  for (let i = 0; i < beingCompiled.length; i++) {
+    if (filename == beingCompiled[i]) {
+      return true;
+    }
+  }
+  beingCompiled.push(filename);
   const _import = await compileValerian(filename, true);
   if (!compiledWithErrors(_import)) {
     imports[filename] = _import;
+    for (let i = 0; i < beingCompiled.length; i++) {
+      if (filename == beingCompiled[i]) {
+        beingCompiled.splice(i, 1);
+      }
+    }
     return true;
   } else {
     return _import;
