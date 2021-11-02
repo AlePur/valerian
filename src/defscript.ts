@@ -1,5 +1,6 @@
 import { declareImport } from "./index"
 import { CompileError } from "./header"
+import { Module } from "./template"
 import * as path from "path"
 import { existsSync } from "fs";
 
@@ -12,11 +13,13 @@ export default class DefscriptCompiler {
   indentLevel: number;
   directory: string;
   error: null | string;
+  module: Module;
   lineNumber: number;
 
-  constructor(dir: string) {
+  constructor(dir: string, module: Module) {
     this.indentLevel = 0;
     this.compiled = {};
+    this.module = module;
     this.directory = dir;
     this.error = null;
     this.lineNumber = 0;
@@ -29,8 +32,23 @@ export default class DefscriptCompiler {
     return path.join(this.directory, filename);
   }
 
+  public finish(): void {
+    this.module.endRegion();
+  }
+
+  public registerHook(value: string): string {
+    return this.module.registerHook(value);
+  }
+
   public getString (str: string):  { str?: string, err: null | string } | -1 {
     let symbol = str[0];
+    if (symbol == "{") {
+      if (str[str.length - 1] != "}") {
+        return { err: "Unexpected end of line, expected a closing bracket" }
+      }
+      //preparing to hook
+      return { str: str, err: null }
+    }
     if (symbol == "&") {
       let variable = this.resolveVariable(str.slice(1));
       if (variable === undefined) {
@@ -69,6 +87,14 @@ export default class DefscriptCompiler {
         let arg = pair[1].trim();
         let action = pair[0].trim().slice(1);
         if (action == "import") {
+          const str = this.getString(arg);
+          if (str != -1) {
+            if (str.err) {
+              return str.err;
+            } else {
+              arg = str.str;
+            }
+          }  
           const importPath = this.getAbsolutePath(arg);
           if (!existsSync(importPath)) {
             return "File does not exist";
@@ -95,6 +121,7 @@ export default class DefscriptCompiler {
               return "Variable redefinition not permitted"
             }
             this.compiled[key] = value.str;
+            this.module.addVariable(key, value.str);
           }
         }
       }

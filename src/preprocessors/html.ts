@@ -7,6 +7,56 @@ export default class HtmlParser extends BaseParser {
     return this.getParsedLine(line, null, kwargs, false, false, false);
   }
 
+  private fetchId(line: string, args: HtmlKwargs): [string, HtmlKwargs] | string {
+    const id = line.split(" ");
+
+    if (id.length > 1) {
+      if (id[1][0] !== id[1][0].toUpperCase()) {
+        return "Element ids are expected to be in PascalCase"
+      }
+      if (!args) {
+        args = {};
+      }
+      if (args["id"] !== undefined) {
+        return "Element id is defined in multiple places"
+      }
+      args["id"] = id[1];
+      return [id[0], args];
+    } else {
+      return [line, args]
+    }
+  }
+
+  private parseElement(line: string, args: HtmlKwargs | null = null): string | -1 {
+
+    const pair = this.getKeyValuePair(line);
+
+    if (pair == -1) {
+      const element = this.fetchId(line, args);
+      if (typeof element === "string") {
+        return element;
+      }
+      this.parsed.push(this.getParsedLine(element[0], null, element[1], false, false, true));
+      this.openBlocks.push("__reserved");
+      this.expectingNoBlock = true;
+      return -1;
+    }
+
+    if (pair.error !== null) {
+      return pair.error;
+    }
+
+    const element = this.fetchId(pair.key, args);
+
+    if (typeof element === "string") {
+      return element;
+    }
+
+    this.openBlocks.push(element[0]);
+    this.parsed.push(this.getParsedLine(element[0], pair.value, element[1], false, false, false));
+    return -1;
+  }
+
   private checkConstants(line: string): string | null | -1 {
     const len = this.parsed.length;
 
@@ -37,36 +87,7 @@ export default class HtmlParser extends BaseParser {
           return "A string takes no parameters";
         }
 
-        const pair = this.getKeyValuePair(key);
-
-        if (pair == -1) {
-          this.parsed.push(this.getParsedLine(key, null, pairs, false, false, true));
-          this.openBlocks.push("__reserved");
-          this.expectingNoBlock = true;
-          return -1;
-        }
-
-        if (pair.error !== null) {
-          return pair.error;
-        }
-
-        const id = pair.key.split(" ");
-
-        if (id.length > 1) {
-          this.openBlocks.push(id[0]);
-          if (id[1][0] !== id[1][0].toUpperCase()) {
-            return "Element ids are expected to be in PascalCase"
-          }
-          if (pairs["id"] !== undefined) {
-            return "Element id is defined in multiple places"
-          }
-          pairs["id"] = id[1];
-          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
-        } else {
-          this.openBlocks.push(pair.key);
-          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
-        }
-        return -1;
+        return this.parseElement(key, pairs);
       } else {
         let id = line.slice(1);
         if (id != "") {
@@ -108,32 +129,11 @@ export default class HtmlParser extends BaseParser {
       return constants;
     }
 
-    const pair = this.getKeyValuePair(line);
-    if (pair == -1) {
-      //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, null, false, false, true));
-      this.openBlocks.push("__reserved");
-      this.expectingNoBlock = true;
+    const result = this.parseElement(line);
+    if (result == -1) {
       return null;
-    }
-
-    if (pair.error !== null) {
-      return pair.error;
-    }
-
-    const id = pair.key.split(" ");
-
-    if (id.length > 1) {
-      this.openBlocks.push(id[0]);
-      if (id[1][0] !== id[1][0].toUpperCase()) {
-        return "Element ids are expected to be in PascalCase"
-      }
-      this.parsed.push(this.getParsedLine(id[0], pair.value, { id: id[1] }, false, false, false));
     } else {
-      this.openBlocks.push(pair.key);
-      this.parsed.push(this.openBlock(pair.key, pair.value));
+      return result;
     }
-
-    return null;
   }
 }

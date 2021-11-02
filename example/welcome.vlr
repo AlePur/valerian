@@ -13,7 +13,7 @@ html:
                 p: "Lorem ipsum"
             )
             i: "Dolor sit amet"
-            @btn Button:
+            btn Button:
                 (
                     "Click here!"
                 )

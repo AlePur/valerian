@@ -6,12 +6,9 @@
   "scripts": {
     "valerian": "node out/index.js example",
     "test": "jest",
-    "build": "tsc",
+    "build": "tsc && npm run copy-static",
+    "copy-static": "cp src/template.js out/valerian_template.js",
     "watch": "tsc --watch"
-  },
-  "jest": {
-    "collectCoverage": true,
-    "coverageReporters": ["html"]
   },
   "author": "",
   "license": "ISC",

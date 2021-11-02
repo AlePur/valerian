@@ -19,7 +19,7 @@ export default class JsCompiler {
 
   public compile(line: string, indent: number, lineNumber: number): string | null {
     
-    this.compiled.push(line);
+    this.compiled.push("\t" + line);
 
     return null;
   }

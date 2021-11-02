@@ -2,6 +2,7 @@ import { CompileError, CompiledRegion, ParsedLine, ParsedList, compiledWithError
 import CssCompiler from "./parsers/css";
 import HtmlCompiler from "./parsers/html";
 import JsCompiler from "./parsers/js";
+import TemplateManager, { Module } from "./template"
 import DefscriptCompiler from "./defscript";
 
 type Region = "html" | "css" | "js" | "pre";
@@ -16,9 +17,11 @@ export default class Compiler {
   indentLevel: number;
   lineNumber: number;
   baseIndent: number;
+  scriptHasBeen: boolean;
   filename: string;
   htmlParser: HtmlCompiler;
   jsParser: JsCompiler;
+  templateModule: Module;
   cssParser: CssCompiler;
   preParser: DefscriptCompiler;
   region: Region;
@@ -26,9 +29,11 @@ export default class Compiler {
   constructor(directory: string, name: string) {
     this.lineNumber = 1;
     this.indentLevel = 0;
+    this.scriptHasBeen = false;
     this.indent = "";
     this.baseIndent = 0;
-    this.preParser = new DefscriptCompiler(directory);
+    this.templateModule = TemplateManager.allocateModule(name);
+    this.preParser = new DefscriptCompiler(directory, this.templateModule);
     this.filename = name;
     this.region = "pre";
   }
@@ -49,6 +54,8 @@ export default class Compiler {
     }
     if (this.region != "pre") {
       nline = this.parseLine("finish");
+    } else {
+      this.preParser.finish();
     }
     if (nline === -1) {
       return this.throwError("Unexpected end of line", line, this.lineNumber);
@@ -58,6 +65,7 @@ export default class Compiler {
       if (this.region == "css") {
         nline.lines.push("\t</style>");
       } else if (this.region == "js") {
+        //nline.lines.push("\t\t});")
         nline.lines.push("\t</script>");
       }
 
@@ -73,6 +81,7 @@ export default class Compiler {
       } else if (region == "js") {
         this.jsParser = new JsCompiler();
         nline.lines.push("\t<script>");
+        nline.lines.push('\t\tconst local = Valerian.recall("' + this.filename + '");');
       }
     }
 
@@ -132,6 +141,8 @@ export default class Compiler {
       }
     }
 
+    this.templateModule.finish();
+
     return nline;
   }
 
@@ -170,6 +181,10 @@ export default class Compiler {
       } else if (line == "style:") {
         nline = this.switchRegion("css", line);
       } else if (line == "script:") {
+        if (this.scriptHasBeen) {
+          return this.throwError("Duplicate script tag not permitted", line, this.lineNumber);
+        }
+        this.scriptHasBeen = true;
         nline = this.switchRegion("js", line);
       } else {
         if (this.region == "pre") {

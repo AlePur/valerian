@@ -1,19 +1,21 @@
+@include index.js
 @import btn
 red = "red"
 smiley = "😊"
 color = "pink"
+title = "88"
 
 script:
-    let joy = "del";
+    const desc = "Well-fed"
 html:
     head:
-        title: "My Valerian.js Website"
+        title: "title"
     body:
         "My button: "
         @btn
         (Content
             p Emoji: &smiley
-            p Color: "My favorite color: "
+            p Desc: {desc}
         )
         form:
             (

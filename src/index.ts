@@ -1,4 +1,5 @@
 import { usage, CompileError, errorHtml, compiledWithErrors } from "./header";
+import TemplateManager from "./template";
 import Compiler from "./compiler";
 import Color from "./console";
 import { lstatSync, existsSync, createReadStream, writeFileSync, mkdirSync, readdirSync } from "fs";
@@ -59,6 +60,7 @@ export const compileValerian = (filename: string, module: boolean): Promise<stri
     let compiled: string[] = [];
     if (!module) {
       compiled[0] = "<html>";
+      compiled[1] = '\t<script src="./valerian.js"></script>';
     }
 
     const comp = new Compiler(path.dirname(filename), filename);
@@ -174,10 +176,16 @@ const compileFile = async (filename: string) => {
   } else {
     const files = readdirSync(arg[0]);
     files.forEach((file) => {
-      promiseList.push(compileFile(path.join(arg[0], file)));
+      const fullPath = path.join(arg[0], file);
+      if (file.slice(file.length - 4) == ".vlr") {
+        promiseList.push(compileFile(fullPath));
+      } else {
+        logVerbose("Omitting file", fullPath, "...")
+      }
     });
   }
   Promise.all(promiseList).then((values) => {
+    TemplateManager.write();
     console.log("Successfully compiled all files.");
   });
 })()
