@@ -1,8 +1,7 @@
 @import btn
 red = "red"
-mocca = "#770044"
 smiley = "😊"
-yomu = "10px"
+color = "pink"
 
 script:
     let joy = "del";
@@ -12,9 +11,6 @@ html:
     body:
         "My button: "
         @btn
-        (Header
-            h1: "Welcomde!"
-        )
         (Content
             p Emoji: &smiley
             p Color: "My favorite color: "
@@ -30,4 +26,4 @@ html:
             )
 style:
     body:
-        .red.color:&red
+        .red.color: &red

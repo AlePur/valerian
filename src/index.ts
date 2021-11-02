@@ -26,7 +26,7 @@ const logVerbose = (...str: string[]): void => {
   console.log(...str);
 };
 
-export const fetchImport = (filename: string): string[] => {
+export const fetchImport = (filename: string): string[] | undefined => {
   return imports[filename];
 }
 

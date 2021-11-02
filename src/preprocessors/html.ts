@@ -31,7 +31,7 @@ export default class HtmlParser extends BaseParser {
           pairs[x[0].trim()] = x[1].trim();
         }
 
-        const rawstr = this.getString(key);
+        const rawstr = this.defscript.getString(key);
 
         if (rawstr !== -1) {
           return "A string takes no parameters";

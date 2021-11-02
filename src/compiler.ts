@@ -71,7 +71,7 @@ export default class Compiler {
         this.baseIndent = 0;
         this.htmlParser = new HtmlCompiler(this.preParser);
       } else if (region == "js") {
-        this.jsParser = new JsCompiler(this.preParser);
+        this.jsParser = new JsCompiler();
         nline.lines.push("\t<script>");
       }
     }

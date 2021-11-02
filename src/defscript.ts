@@ -1,4 +1,3 @@
-import { getString } from "./preprocessors/base"
 import { declareImport } from "./index"
 import { CompileError } from "./header"
 import * as path from "path"
@@ -23,6 +22,31 @@ export default class DefscriptCompiler {
     this.lineNumber = 0;
   }
 
+  public getAbsolutePath(filename: string): string {
+    if (filename.indexOf(".vlr") == -1) {
+      filename += ".vlr"
+    }
+    return path.join(this.directory, filename);
+  }
+
+  public getString (str: string):  { str?: string, err: null | string } | -1 {
+    let symbol = str[0];
+    if (symbol == "&") {
+      let variable = this.resolveVariable(str.slice(1));
+      if (variable === undefined) {
+        return { err: "Accessing undefined variable" };
+      }
+      return { str: variable.toString(), err: null }
+    }
+    if (symbol == "'" || symbol == "\"") {
+      if (str[str.length - 1] != symbol) {
+        return { err: "Unexpected end of line, missing last quote" }
+      }
+      return { str: str.slice(1, str.length - 1), err: null }
+    }
+    return -1;
+  }
+
   public resolveVariable(name: string): string | number | undefined {
     return this.compiled[name];
   }
@@ -45,10 +69,7 @@ export default class DefscriptCompiler {
         let arg = pair[1].trim();
         let action = pair[0].trim().slice(1);
         if (action == "import") {
-          if (arg.indexOf(".vlr") == -1) {
-            arg += ".vlr"
-          }
-          const importPath = path.join(this.directory, arg);
+          const importPath = this.getAbsolutePath(arg);
           if (!existsSync(importPath)) {
             return "File does not exist";
           }
@@ -64,7 +85,7 @@ export default class DefscriptCompiler {
           if (pair.length != 2 || key == '') {
             this.error = "Syntax error"
           } else {
-            let value = getString(pair[1].trim());
+            let value = this.getString(pair[1].trim());
             if (value == -1) {
               return "Expected a string";
             } else if (value.err !== null) {

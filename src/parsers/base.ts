@@ -1,5 +1,6 @@
 import { ParsedList, ParsedLine, CompiledRegion, ParserType, CompileError } from "../header";
 import BaseParser from "../preprocessors/base";
+import DefscriptCompiler from "../defscript"
 
 export default class BaseCompiler {
   error: null | string;
@@ -12,7 +13,7 @@ export default class BaseCompiler {
     this.error = null;
     //this.line = "__INIT";
     this.compiled = [];
-    this.parser = new BaseParser();
+    //this.parser = new BaseParser();
     this.baseIndent = 0;
   }
 

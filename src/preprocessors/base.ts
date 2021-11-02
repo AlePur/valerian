@@ -1,23 +1,5 @@
 import { ParsedLine, ParsedList, HtmlKwargs } from "../header";
-import { Defscript } from "../defscript"
-
-export const getString = (str: string):  { str?: string, err: null | string } | -1  => {
-  let symbol = str[0];
-  if (symbol == "&") {
-    let variable = Defscript.resolveVariable(str.slice(1));
-    if (variable === undefined) {
-      return { err: "Accessing undefined variable" };
-    }
-    return { str: variable.toString(), err: null }
-  }
-  if (symbol == "'" || symbol == "\"") {
-    if (str[str.length - 1] != symbol) {
-      return { err: "Unexpected end of line, missing last quote" }
-    }
-    return { str: str.slice(1, str.length - 1), err: null }
-  }
-  return -1;
-}
+import DefscriptCompiler from "../defscript"
 
 interface KeyValuePair {
   key: string;
@@ -33,14 +15,16 @@ export default class BaseParser {
   ignoreLine: boolean;
   error: null | string;
   parsed: ParsedLine[];
+  defscript: DefscriptCompiler;
   lineNumber: number;
 
-  constructor() {
+  constructor(pparser: DefscriptCompiler) {
     this.indentLevel = 1;
     this.openBlocks = [];
     this.expectingNoBlock = false;
     this.expectingBlock = false;
     this.ignoreLine = false;
+    this.defscript = pparser;
     this.error = null;
     this.parsed = [];
     this.lineNumber = 0;
@@ -75,7 +59,7 @@ export default class BaseParser {
     let data = str.slice(delimiter+1).trim();
     if (data) {
       if (data[0] !== "") {
-        let str = this.getString(data);
+        let str = this.defscript.getString(data);
         if (str == -1) {
           return this.throwError("Expected a string");
         } else if (str.err !== null) {
@@ -148,8 +132,6 @@ export default class BaseParser {
     this.openBlocks.push("__reserved");
   }
 
-  public getString = getString;
-
   protected handleLine(line: string): null | string {
     const pair = this.getKeyValuePair(line);
     if (pair == -1) {
@@ -203,7 +185,7 @@ export default class BaseParser {
       this.ignoreLine = false;
 
       if (!this.error) {
-        const rawstr = this.getString(line);
+        const rawstr = this.defscript.getString(line);
 
         if (line[0] == " " || line[0] == "\t") {
           this.error = "Unexpected whitespace, possible cause is mixed tabs and spaces"
