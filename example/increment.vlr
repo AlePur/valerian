@@ -1,0 +1,18 @@
+@declare startCount
+dynamic count = 0
+function updateButton
+
+script:
+    local.updateButton = (amount) => {
+        local.count.update(local.count.value + amount)
+    }
+html:
+    (Count
+        p: 
+            "Count is "
+            span: {count}
+    )
+    (onclick={updateButton(1)}) -> button Button: "Click!"
+style:
+    Button: 
+        color: "black"

@@ -27,12 +27,17 @@ ${err}
 export type ParserType = BaseParser | CssParser | HtmlParser;
 export interface HtmlKwargs {
   id?: string;
+  class?: string;
 }
 export interface CompileError {
   message: string;
   trace: string;
   line: number;
   sourceFile: string;
+}
+export interface CompiledFile {
+  lines: string[];
+  numericName: string;
 }
 export interface CompiledRegion {
   lines: string[];

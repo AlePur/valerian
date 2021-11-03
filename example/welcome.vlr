@@ -1,25 +1,18 @@
+@import increment
+startCount = 5
+
 html:
     head:
         title: "Test website"
-        (
-            "r"
-        )
     body:
-        (Header
-            h1: "Welcome!"
+        (Increment
+            p:
+                "Look at my increment module! (it starts counting at "
+                &startCount
+                ")"
+            @increment(&startCount)
         )
-        (Content
-            (
-                p: "Lorem ipsum"
-            )
-            i: "Dolor sit amet"
-            btn Button:
-                (
-                    "Click here!"
-                )
-            (Form
-                (type=checkbox) -> input
-                form:
-                    input
-            )
-        )
+style:
+    Increment:
+        font-size: "20px"
+        background-color: "beige"

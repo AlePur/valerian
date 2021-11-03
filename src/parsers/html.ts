@@ -1,12 +1,8 @@
-import { ParsedLine } from "../header";
+import { ParsedLine, HtmlKwargs } from "../header";
 import BaseCompiler from "./base";
 import DefscriptCompiler from "../defscript"
 import { fetchImport } from "../index";
 import HtmlParser from "../preprocessors/html";
-
-export interface HtmlKwargs {
-  id?: string;
-}
 
 export default class HtmlCompiler extends BaseCompiler {
   defscript: DefscriptCompiler
@@ -29,7 +25,7 @@ export default class HtmlCompiler extends BaseCompiler {
     return "<" + name + " />";
   }
 
-  private checkHook(str: string, type: number, obj: ParsedLine): string | -1 {
+  private checkHook(str: string): string | -1 {
     if (str[0] == "{") {
       return this.defscript.registerHook(str.slice(1, str.length - 1));
     }
@@ -49,17 +45,49 @@ export default class HtmlCompiler extends BaseCompiler {
     let tmp: string = "";
     tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
     if (obj.rawString) {
-      //this.checkHook(obj.key, 0, obj);
-      tmp += this.stringBlock(obj.key);
+      const hooked = this.checkHook(obj.key);
+      if (hooked != -1) {
+        tmp += this.openTag("span", { "class": hooked }, true);
+      } else {
+        tmp += this.stringBlock(obj.key);
+      }
     } else {
       if (obj.key[0] == "@") {
-        const name = obj.key.slice(1);
-        const _import = fetchImport(this.defscript.getAbsolutePath(name));
+        let name: string = obj.key.slice(1);
+        let args: Array<string | number> = [];
+        let index = name.indexOf("(");
+        if (index != -1) {
+          if (name[name.length - 1] != ")") {
+            return "Unexpected end of line, expected a closing paranthesis"
+          }
+          let argstr = name.slice(index + 1, name.length - 1);
+          name = name.slice(0, index);
+          let _args = argstr.split(",");
+          for (let i = 0; i < _args.length; i++) {
+            const value = _args[i].trim();
+            let str = this.defscript.getString(value);
+            if (str == -1) {
+              if (parseInt(value).toString() != value) {
+                return "Unexpected non-numeric argument, use quotes to pass a string"
+              }
+              str = { err: null, str: value }
+            }
+            if (str.err) {
+              return str.err;
+            }
+            args.push(str.str);
+          }
+        }
+        let _import = fetchImport(this.defscript.getAbsolutePath(name));
+        const importName = this.defscript.getImportName();
+        for (let i = 0; i < _import.lines.length; i++) {
+          _import.lines[i] = _import.lines[i].replace(_import.numericName, importName);
+        }
         if (_import == undefined) {
           return "Accessing undefined import";
         }
-        for (let i = 0; i < _import.length; i++) {
-          this.compiled.push("\t".repeat((obj.indentLevel - 1) + this.baseIndent) + _import[i]);
+        for (let i = 0; i < _import.lines.length; i++) {
+          this.compiled.push("\t".repeat((obj.indentLevel - 1) + this.baseIndent) + _import.lines[i]);
         }
         return null;
       }
@@ -81,7 +109,7 @@ export default class HtmlCompiler extends BaseCompiler {
           tmp += this.closeBlock(obj.key);
         } else {
           if (obj.value !== null) {
-            const hooked = this.checkHook(obj.value, 0, obj);
+            const hooked = this.checkHook(obj.value);
             if (hooked != -1) {
               if (obj.data == null) {
                 obj.data = {};

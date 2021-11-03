@@ -78,7 +78,24 @@ export default class HtmlParser extends BaseParser {
           if (x.length != 2) {
             return "Error parsing element parameters";
           }
-          pairs[x[0].trim()] = x[1].trim();
+          const variableName = x[1].trim();
+          const rawstr = this.defscript.getString(variableName);
+          if (rawstr == -1) {
+            return "Expected a string";
+          }
+          if (rawstr.err) {
+            return rawstr.err;
+          }
+          if (rawstr.type == 1) {
+            return "Unexpected dynamic variable"
+          }
+          let value = rawstr.str;
+          if (rawstr.type == 2) {
+            // remove the {}
+            const paranth = variableName.indexOf("(");
+            value += "." + variableName.slice(1, variableName.length - 1) + (paranth == -1 ? "()" : "");
+          }
+          pairs[x[0].trim()] = value;
         }
 
         const rawstr = this.defscript.getString(key);

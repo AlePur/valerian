@@ -1,8 +1,8 @@
-import { usage, CompileError, errorHtml, compiledWithErrors } from "./header";
+import { usage, CompileError, errorHtml, compiledWithErrors, CompiledFile } from "./header";
 import TemplateManager from "./template";
 import Compiler from "./compiler";
 import Color from "./console";
-import { lstatSync, existsSync, createReadStream, writeFileSync, mkdirSync, readdirSync } from "fs";
+import { lstatSync, existsSync, createReadStream, writeFileSync, mkdirSync, readdirSync, rmSync } from "fs";
 import * as readline from "readline";
 import * as path from "path";
 
@@ -17,17 +17,18 @@ const renderError = (comerror: CompileError, console: boolean): string => {
 };
 
 interface Imports {
-  [key: string]: string[]
+  [key: string]: CompiledFile
 }
 
 const imports: Imports = {};
 const beingCompiled: string[] = [];
+let compileIndex = 0;
 
 const logVerbose = (...str: string[]): void => {
   console.log(...str);
 };
 
-export const fetchImport = (filename: string): string[] | undefined => {
+export const fetchImport = (filename: string): CompiledFile | undefined => {
   return imports[filename];
 }
 
@@ -36,6 +37,7 @@ export const declareImport = async (filename: string): Promise<true | CompileErr
     return true;
   }
   for (let i = 0; i < beingCompiled.length; i++) {
+    //FIXME: this will cause errors in the future
     if (filename == beingCompiled[i]) {
       return true;
     }
@@ -55,15 +57,20 @@ export const declareImport = async (filename: string): Promise<true | CompileErr
   }
 }
 
-export const compileValerian = (filename: string, module: boolean): Promise<string[] | CompileError> => {
+export const compileValerian = (filename: string, module: boolean): Promise<CompiledFile | CompileError> => {
   return new Promise(async (resolve) => {
     let compiled: string[] = [];
+    let numericName: string = "__v" + compileIndex.toString();
+    compileIndex++;
+
     if (!module) {
       compiled[0] = "<html>";
       compiled[1] = '\t<script src="./valerian.js"></script>';
+    } else {
+      numericName += "__RESERVED__VALERIAN__IMPORT:TEMPLATE_IMPORT";
     }
 
-    const comp = new Compiler(path.dirname(filename), filename);
+    const comp = new Compiler(path.dirname(filename), filename, numericName);
     logVerbose(module ? "Import: compiling" : "Compiling", filename, "...");
 
     const readInterface = readline.createInterface({
@@ -94,7 +101,10 @@ export const compileValerian = (filename: string, module: boolean): Promise<stri
       return;
     }
 
-    resolve(compiled);
+    resolve({
+      lines: compiled,
+      numericName
+    });
 
     /*readInterface.on('line', async (line) => {
       const nline = await comp.compile(line);
@@ -138,11 +148,11 @@ const compileFile = async (filename: string) => {
   if (compiledWithErrors(compiled)) {
     console.log(renderError(compiled, true));
     let err = new errorHtml(renderError(compiled, false));
-    writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", err.html.join("\n"));
+    writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", err.html.join("\n"));
     process.exit();
     return;
   }
-  writeFileSync(path.join("./dist", path.basename(filename, '.vlr')) + ".html", compiled.join("\n"));
+  writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", compiled.lines.join("\n"));
 }
 
 
@@ -158,6 +168,15 @@ const compileFile = async (filename: string) => {
       return "Failed creating output directory: " + e.message;
     }
   }
+  const vPath = path.join("./dist", "valerian")
+  try {
+    rmSync(vPath, { recursive: true, force: true });
+  } catch(e) {
+    if (e.code != ("ENOENT")) {
+      return "Failed creating output directory: " + e.message;
+    }
+  }
+  mkdirSync(vPath);
   let promiseList = [];
 
   if (!existsSync(arg[0])) {

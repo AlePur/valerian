@@ -1,31 +1,36 @@
 @include index.js
-@import btn
-red = "red"
-smiley = "😊"
-color = "pink"
-title = "88"
+red = "#f00"
+happy = "😊"
+sad = "😞"
+dynamic mood = "bad"
+dynamic emoji = &sad
 
 script:
-    const desc = "Well-fed"
+    setInterval(() => {
+        if (Math.random() > 0.8) {
+            if (local.mood.value == "good") {
+                local.mood.update("bad");
+                local.emoji.update(local.sad);
+            } else {
+                local.mood.update("good");
+                local.emoji.update(local.happy);
+            }
+        }
+    }, 200);
 html:
     head:
         title: "title"
     body:
-        "My button: "
-        @btn
         (Content
-            p Emoji: &smiley
-            p Desc: {desc}
+            p Emoji: {emoji}
+            (class="red") -> p MyMood: 
+                "My mood is "
+                {mood}
         )
-        form:
-            (
-                label: "First name:"
-                input
-            )
-            (
-                label: "Last name:"
-                input
-            )
 style:
     body:
         .red.color: &red
+        MyMood:
+            font-size: "30px"
+        Emoji:
+            font-size: "50px"

@@ -65,7 +65,7 @@ export default class BaseParser {
         } else if (str.err !== null) {
           return this.throwError(str.err);
         } else {
-          data = str.str;
+          data = str.str.toString();
         }
       }
     } else {
@@ -194,9 +194,11 @@ export default class BaseParser {
             if (rawstr.err) {
               this.error = rawstr.err;
             } else {
-              this.pushString(rawstr.str);
+              this.pushString(rawstr.str.toString());
               this.expectingNoBlock = true;
-              this.error = null;
+              if (rawstr.type == 2) {
+                this.error = "Unexpected function call"
+              }
             }
           } else {
             this.error = this.handleLine(line);

@@ -23,19 +23,36 @@ export default class Compiler {
   jsParser: JsCompiler;
   templateModule: Module;
   cssParser: CssCompiler;
+  numericName: string;
   preParser: DefscriptCompiler;
   region: Region;
 
-  constructor(directory: string, name: string) {
+  constructor(directory: string, name: string, numericName) {
     this.lineNumber = 1;
     this.indentLevel = 0;
+    this.numericName = numericName;
     this.scriptHasBeen = false;
     this.indent = "";
     this.baseIndent = 0;
     this.templateModule = TemplateManager.allocateModule(name);
-    this.preParser = new DefscriptCompiler(directory, this.templateModule);
+    this.preParser = new DefscriptCompiler(directory, this.templateModule, this.numericName);
     this.filename = name;
     this.region = "pre";
+  }
+
+  private endScript(): string[] {
+    return [
+      "\t\t});",
+      "\t</script>"
+    ];
+  }
+
+  private startScript(): string[] {
+    return [
+      "\t<script>", 
+      '\t\tconst ' + this.numericName + ' = Valerian.recall("' + this.filename + '");',
+      '\t\t' + this.numericName + '.extend((local) => {'
+    ];
   }
 
   private throwError(message: string, trace: string, line: number): CompileError {
@@ -65,8 +82,7 @@ export default class Compiler {
       if (this.region == "css") {
         nline.lines.push("\t</style>");
       } else if (this.region == "js") {
-        //nline.lines.push("\t\t});")
-        nline.lines.push("\t</script>");
+        nline.lines = nline.lines.concat(this.endScript());
       }
 
       this.region = region;
@@ -80,8 +96,7 @@ export default class Compiler {
         this.htmlParser = new HtmlCompiler(this.preParser);
       } else if (region == "js") {
         this.jsParser = new JsCompiler();
-        nline.lines.push("\t<script>");
-        nline.lines.push('\t\tconst local = Valerian.recall("' + this.filename + '");');
+        nline.lines = nline.lines.concat(this.startScript());
       }
     }
 
@@ -137,7 +152,10 @@ export default class Compiler {
       if (this.region == "css") {
         nline.lines.push("\t</style>");
       } else if (this.region == "js") {
-        nline.lines.push("\t</script>");
+        nline.lines = nline.lines.concat(this.endScript());
+      }
+      if (!this.scriptHasBeen) {
+        nline.lines = nline.lines.concat(this.startScript(), this.endScript());
       }
     }
 

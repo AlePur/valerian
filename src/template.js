@@ -1,39 +1,69 @@
 const Valerian = new (class Valerian {
-    constructor() {
-        this.files = {
-        };
-    }
+	constructor() {
+		this.files = {
+		};
 
-    Module = class Module {
-        constructor(parent, scope, filename) {
-            const file = parent.files[filename];
-            let variables = file.variables;
-            for (let i = 0; i < variables.length; i++) {
-                this[variables[i][0]] = variables[i][1];
-            }
-            let hooks = file.variables;
-            for (let i = 0; i < hooks.length; i++) {
-                this._valerian_hooks[i] = new Proxy(scope, {
-                    set: function (target, key, value) {
-                        console.log(`${key} set to ${value}`);
-                        target[key] = value;
-                        return true;
-                    },
-                    get: function(target, property) {
-                        console.log('getting ' + property + ' for ' + target);
-                        // property is index in this case
-                        return target[property];
-                    }
-                });
-            }
-        }
+		this.DynamicHook = class DynamicHook {
+			constructor(className) {
+				this.className = className;
+			}
 
-        extend(callback) {
-            return callback(this);
-        }
-    } 
+			update(value) {
+				const element = document.getElementsByClassName(this.className);
+				element[0].innerHTML = value;
+			}
+		}
 
-    recall(scope, filename) {
-        return new this.Module(this, scope, filename);
-    }
-});
+		this.DynamicVariable = class DynamicVariable {
+			constructor(value) {
+				this.value = value;
+				this.hooks = [];
+			}
+
+			__addHook(hook) {
+				this.hooks.push(hook);
+				window.addEventListener('load', (event) => {
+					this.update(this.value);
+				});
+			}
+
+			update(value) {
+				this.value = value;
+				for (let i = 0; i < this.hooks.length; i++) {
+					this.hooks[i].update(value);
+				}
+			}
+		}
+
+		this.Module = class Module {
+			constructor(parent, filename) {
+				/*this.__valerian = {
+					__hooks: []
+				}*/
+				const file = parent.files[filename];
+				let variables = file.variables;
+				for (let i = 0; i < variables.length; i++) {
+					if (variables[i][2] == 0) {
+						this[variables[i][0]] = variables[i][1];
+					} else if (variables[i][2] == 1) {
+						this[variables[i][0]] = new parent.DynamicVariable(variables[i][1]);
+					} else {
+						this[variables[i][0]] = () => { return; };
+					}
+				}
+				let hooks = file.hooks;
+				for (let i = 0; i < hooks.length; i++) {
+					this[hooks[i][1]].__addHook(new parent.DynamicHook(hooks[i][0]));
+				}
+			}
+	
+			extend(callback) {
+				return callback(this);
+			}
+		} 
+	}
+
+	recall(filename) {
+		return new this.Module(this, filename);
+	}
+})();

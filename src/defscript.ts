@@ -3,9 +3,10 @@ import { CompileError } from "./header"
 import { Module } from "./template"
 import * as path from "path"
 import { existsSync } from "fs";
+import { type } from "os";
 
 export interface CompiledDefscript {
-  [key: string]: string
+  [key: string]: [string | number, number]
 }
 
 export default class DefscriptCompiler {
@@ -14,17 +15,27 @@ export default class DefscriptCompiler {
   directory: string;
   error: null | string;
   module: Module;
+  filename: string;
+  numericName: string;
+  importIndex: number;
   lineNumber: number;
 
-  constructor(dir: string, module: Module) {
+  constructor(dir: string, module: Module, name: string) {
     this.indentLevel = 0;
     this.compiled = {};
+    this.filename = name;
     this.module = module;
     this.directory = dir;
+    this.importIndex = 0;
     this.error = null;
     this.lineNumber = 0;
+    this.numericName = name;
   }
 
+  public getImportName(): string {
+    return this.numericName + "__import" + (this.importIndex++).toString();
+  }
+ 
   public getAbsolutePath(filename: string): string {
     if (filename.indexOf(".vlr") == -1) {
       filename += ".vlr"
@@ -40,32 +51,49 @@ export default class DefscriptCompiler {
     return this.module.registerHook(value);
   }
 
-  public getString (str: string):  { str?: string, err: null | string } | -1 {
+  public getString (str: string):  { str?: string | number, err: null | string, type?: number } | -1 {
     let symbol = str[0];
     if (symbol == "{") {
       if (str[str.length - 1] != "}") {
         return { err: "Unexpected end of line, expected a closing bracket" }
       }
-      //preparing to hook
-      return { str: str, err: null }
+      let name = str.slice(1, str.length - 1);
+      const p = name.indexOf("(");
+      if (p != -1) {
+        name = name.slice(0, p)
+      }
+      let variable = this.resolveVariable(name);
+      if (variable === undefined) {
+        return { err: "Accessing undefined variable" };
+      }
+      if (variable[1] == 0) {
+        return { err: "To bind a static variable use &" + name };
+      }
+      return { str: variable[1] == 2 ? variable[0] : str, err: null, type: variable[1] }
     }
     if (symbol == "&") {
       let variable = this.resolveVariable(str.slice(1));
       if (variable === undefined) {
         return { err: "Accessing undefined variable" };
       }
-      return { str: variable.toString(), err: null }
+      const value = variable[0].toString();
+      if (variable[1] == 1) {
+        return { err: "To bind a dynamic variable use {" + str.slice(1) + "}" };
+      } else if (variable[1] == 2) {
+        return { err: "To bind a function use {" + str.slice(1) + "}" };
+      }
+      return { str: value, err: null, type: 0 }
     }
     if (symbol == "'" || symbol == "\"") {
       if (str[str.length - 1] != symbol) {
         return { err: "Unexpected end of line, missing last quote" }
       }
-      return { str: str.slice(1, str.length - 1), err: null }
+      return { str: str.slice(1, str.length - 1), err: null, type: 0 }
     }
     return -1;
   }
 
-  public resolveVariable(name: string): string | number | undefined {
+  public resolveVariable(name: string): [string | number, number] | undefined {
     return this.compiled[name];
   }
 
@@ -92,12 +120,15 @@ export default class DefscriptCompiler {
             if (str.err) {
               return str.err;
             } else {
-              arg = str.str;
+              if (str.type == 2) {
+                return "Passing a function as a parameter is not permitted";
+              }
+              arg = str.str.toString();
             }
           }  
           const importPath = this.getAbsolutePath(arg);
           if (!existsSync(importPath)) {
-            return "File does not exist";
+            return "File does not exist (" + importPath + ")";
           }
           const _import = await declareImport(importPath);
           if (_import !== true) {
@@ -106,22 +137,49 @@ export default class DefscriptCompiler {
         }
       } else {
         if (line.trim() != "") {
+          let dynamic: boolean = false;
+          let ppair = line.split(" ");
+          if (ppair[0] == "function") {
+            if (ppair.length != 2) {
+              return "Syntax error, function keyword takes one parameter";
+            }
+            this.compiled[ppair[1]] = [this.numericName, 2];
+            this.module.addVariable(ppair[1], this.numericName, 2);
+            return this.error;
+          }
           let pair = line.split("=");
           let key = pair[0].trim();
+          let splitKey = key.split(" ");
+          if (splitKey[0] == "dynamic") {
+            if (splitKey.length != 2) {
+              return "Expected a variable name when declaring a dynamic variable";
+            }
+            key = splitKey[1];
+            dynamic = true;
+          }
           if (pair.length != 2 || key == '') {
             this.error = "Syntax error"
           } else {
-            let value = this.getString(pair[1].trim());
+            const str = pair[1].trim();
+            let value = this.getString(str);
             if (value == -1) {
-              return "Expected a string";
+              if (parseInt(str).toString() == str) {
+                value = { str: parseInt(str), err: null, type: 0 };
+              } else {
+                return "Non-numeric value passed, use quotes to pass a string"
+              }
             } else if (value.err !== null) {
               return value.err;
+            }
+            if (value.type != 0) {
+              return "Dynamic variables and functions cannot be copied"
             }
             if (this.compiled[key] !== undefined) {
               return "Variable redefinition not permitted"
             }
-            this.compiled[key] = value.str;
-            this.module.addVariable(key, value.str);
+            const type = (dynamic === true ? 1 : 0);
+            this.compiled[key] = [value.str, type];
+            this.module.addVariable(key, value.str, type);
           }
         }
       }

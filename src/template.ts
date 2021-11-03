@@ -19,13 +19,14 @@ export class Module {
   public registerHook(variable: string): string {
     this.hooked = true;
     const _class = "v-update-" + this.parent.hookCount.toString();
-    this.str += '["' + _class + '","' + variable + '"],';
+    this.str += '["' + _class + '", "' + variable + '"],';
     this.parent.hookCount++;
     return _class;
   }
 
-  public addVariable(key: string, value: string): void {
-    this.str += '["' + key + '","' + value + '"],';
+  public addVariable(key: string, value: string | number, type: number): void {
+    const parsedValue = (typeof value === "string" ? ' "' + value + '"' : ' ' + value);
+    this.str += '["' + key + '",' + parsedValue + ', ' + type + '],';
   }
 
   public endRegion(): void {
@@ -69,7 +70,7 @@ class TemplateManager {
     const tmp = this.compiled[this.compiled.length - 1];
     this.compiled[this.compiled.length - 1] = tmp.slice(0, tmp.length - 1)
     this.compiled = template.splice(0, injectIndex).concat(this.compiled, template);
-    writeFileSync(path.join("./dist", "valerian.js"), this.compiled.join("\n"));
+    writeFileSync(path.join("./dist", "valerian", "valerian.js"), this.compiled.join("\n"));
   }
 }
 
