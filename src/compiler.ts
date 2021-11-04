@@ -19,25 +19,40 @@ export default class Compiler {
   baseIndent: number;
   scriptHasBeen: boolean;
   filename: string;
+  declaredVariables: string[];
   htmlParser: HtmlCompiler;
   jsParser: JsCompiler;
   templateModule: Module;
   cssParser: CssCompiler;
   numericName: string;
+  directory: string;
   preParser: DefscriptCompiler;
+  isImport: boolean;
   region: Region;
 
-  constructor(directory: string, name: string, numericName) {
+  constructor(directory: string, name: string, numericName, isImport: boolean) {
     this.lineNumber = 1;
     this.indentLevel = 0;
+    this.isImport = isImport;
     this.numericName = numericName;
+    this.directory = directory;
+    this.declaredVariables = [];
     this.scriptHasBeen = false;
     this.indent = "";
     this.baseIndent = 0;
     this.templateModule = TemplateManager.allocateModule(name);
-    this.preParser = new DefscriptCompiler(directory, this.templateModule, this.numericName);
+    this.preParser = new DefscriptCompiler(this);
     this.filename = name;
     this.region = "pre";
+  }
+
+  public valRecall(name: string = this.numericName, filename: string = this.filename): string[] {
+    return [
+      '\t\tconst ' + name + ' = Valerian.recall(',
+      '\t\t\t"' + filename + '",',
+      '\t\t\t"' + name + '"',
+      '\t\t);'
+    ]
   }
 
   private endScript(): string[] {
@@ -48,11 +63,15 @@ export default class Compiler {
   }
 
   private startScript(): string[] {
-    return [
-      "\t<script>", 
-      '\t\tconst ' + this.numericName + ' = Valerian.recall("' + this.filename + '");',
-      '\t\t' + this.numericName + '.extend((local) => {'
-    ];
+    let arr: string[] = [];
+    arr.push("\t<script>"); 
+      
+    if (!this.isImport) {
+      arr = arr.concat(this.valRecall());
+    }
+
+    arr.push('\t\t' + this.numericName + '.extend((local) => {');
+    return arr;
   }
 
   private throwError(message: string, trace: string, line: number): CompileError {
@@ -141,7 +160,7 @@ export default class Compiler {
     return parsed;
   }
 
-  public endOfFile(): CompiledRegion | CompileError {
+  public endOfFile(): [CompiledRegion, string[]] | CompileError {
     let nline: CompiledRegion | CompileError | -1; 
     this.indentLevel = 0;
     nline = this.parseLine("finish");
@@ -157,11 +176,13 @@ export default class Compiler {
       if (!this.scriptHasBeen) {
         nline.lines = nline.lines.concat(this.startScript(), this.endScript());
       }
+    } else {
+      return nline;
     }
 
     this.templateModule.finish();
 
-    return nline;
+    return [nline, this.declaredVariables];
   }
 
   public async compile(line: string): Promise<CompiledRegion | CompileError | -1> {

@@ -18,7 +18,7 @@ export class Module {
 
   public registerHook(variable: string): string {
     this.hooked = true;
-    const _class = "v-update-" + this.parent.hookCount.toString();
+    const _class = "-update-" + this.parent.hookCount.toString();
     this.str += '["' + _class + '", "' + variable + '"],';
     this.parent.hookCount++;
     return _class;

@@ -25,8 +25,8 @@ export default class HtmlCompiler extends BaseCompiler {
     return "<" + name + " />";
   }
 
-  private checkHook(str: string): string | -1 {
-    if (str[0] == "{") {
+  private checkHook(str: string, dynamic: boolean): string | -1 {
+    if (dynamic) {
       return this.defscript.registerHook(str.slice(1, str.length - 1));
     }
     return -1;
@@ -45,9 +45,9 @@ export default class HtmlCompiler extends BaseCompiler {
     let tmp: string = "";
     tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
     if (obj.rawString) {
-      const hooked = this.checkHook(obj.key);
+      const hooked = this.checkHook(obj.key, obj.dynamic);
       if (hooked != -1) {
-        tmp += this.openTag("span", { "class": hooked }, true);
+        tmp += this.openTag("span", { "class": this.defscript.parent.numericName + hooked }, true);
       } else {
         tmp += this.stringBlock(obj.key);
       }
@@ -62,32 +62,49 @@ export default class HtmlCompiler extends BaseCompiler {
           }
           let argstr = name.slice(index + 1, name.length - 1);
           name = name.slice(0, index);
-          let _args = argstr.split(",");
-          for (let i = 0; i < _args.length; i++) {
-            const value = _args[i].trim();
-            let str = this.defscript.getString(value);
-            if (str == -1) {
-              if (parseInt(value).toString() != value) {
-                return "Unexpected non-numeric argument, use quotes to pass a string"
+          if (argstr != "") {
+            let _args = argstr.split(",");
+            for (let i = 0; i < _args.length; i++) {
+              const value = _args[i].trim();
+              let str = this.defscript.getString(value);
+              if (str == -1) {
+                if (parseInt(value).toString() != value) {
+                  return "Unexpected non-numeric argument, use quotes to pass a string"
+                }
+                str = { err: null, str: value }
               }
-              str = { err: null, str: value }
+              if (str.err) {
+                return str.err;
+              }
+              args.push(str.str);
             }
-            if (str.err) {
-              return str.err;
-            }
-            args.push(str.str);
           }
         }
-        let _import = fetchImport(this.defscript.getAbsolutePath(name));
-        const importName = this.defscript.getImportName();
-        for (let i = 0; i < _import.lines.length; i++) {
-          _import.lines[i] = _import.lines[i].replace(_import.numericName, importName);
-        }
+
+        const _import = fetchImport(this.defscript.getAbsolutePath(name));
+        const importName = this.defscript.registerImport();
+        const addIndent = "\t".repeat((obj.indentLevel - 1) + this.baseIndent);
         if (_import == undefined) {
           return "Accessing undefined import";
         }
+        if (_import.declaredVariables.length != args.length) {
+          let _a = _import.declaredVariables.length + " argument" + (_import.declaredVariables.length == 1 ? '' : 's');
+          return "Expected " + _a + " but got " + args.length;
+        }
+        let script: string[] = [
+          "\t<script>"
+        ];
+        script = script.concat(this.defscript.parent.valRecall(importName, _import.fileName));
+        for (let i = 0; i < args.length; i++) {
+          script.push("\t\t" + _import.declaredVariables[i] + args[i].toString());
+        }
+        script.push("\t</script>")
+        for (let i = 0; i < script.length; i++) {
+          script[i] = addIndent + script[i];
+        }
+        this.compiled = this.compiled.concat(script);
         for (let i = 0; i < _import.lines.length; i++) {
-          this.compiled.push("\t".repeat((obj.indentLevel - 1) + this.baseIndent) + _import.lines[i]);
+          this.compiled.push(addIndent + _import.lines[i].replace(_import.numericName, importName));
         }
         return null;
       }
@@ -109,15 +126,16 @@ export default class HtmlCompiler extends BaseCompiler {
           tmp += this.closeBlock(obj.key);
         } else {
           if (obj.value !== null) {
-            const hooked = this.checkHook(obj.value);
+            const hooked = this.checkHook(obj.value, obj.dynamic);
             if (hooked != -1) {
               if (obj.data == null) {
                 obj.data = {};
               }
+              const className = this.defscript.parent.numericName + hooked;
               if (obj.data["class"]) {
-                obj.data["class"] += " " + hooked
+                obj.data["class"] += " " + className
               } else {
-                obj.data["class"] = hooked;
+                obj.data["class"] = className;
               }
             }
             if (obj.data) {

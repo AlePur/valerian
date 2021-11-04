@@ -4,6 +4,7 @@ import { Module } from "./template"
 import * as path from "path"
 import { existsSync } from "fs";
 import { type } from "os";
+import Compiler from "./compiler";
 
 export interface CompiledDefscript {
   [key: string]: [string | number, number]
@@ -12,43 +13,37 @@ export interface CompiledDefscript {
 export default class DefscriptCompiler {
   compiled: CompiledDefscript;
   indentLevel: number;
-  directory: string;
   error: null | string;
-  module: Module;
-  filename: string;
-  numericName: string;
+  parent: Compiler;
   importIndex: number;
   lineNumber: number;
 
-  constructor(dir: string, module: Module, name: string) {
+  constructor(compiler: Compiler) {
     this.indentLevel = 0;
     this.compiled = {};
-    this.filename = name;
-    this.module = module;
-    this.directory = dir;
+    this.parent = compiler;
     this.importIndex = 0;
     this.error = null;
     this.lineNumber = 0;
-    this.numericName = name;
   }
 
-  public getImportName(): string {
-    return this.numericName + "__import" + (this.importIndex++).toString();
+  public registerImport(): string {
+    return this.parent.numericName + "__i" + (this.importIndex++).toString();
   }
  
   public getAbsolutePath(filename: string): string {
     if (filename.indexOf(".vlr") == -1) {
       filename += ".vlr"
     }
-    return path.join(this.directory, filename);
+    return path.join(this.parent.directory, filename);
   }
 
   public finish(): void {
-    this.module.endRegion();
+    this.parent.templateModule.endRegion();
   }
 
   public registerHook(value: string): string {
-    return this.module.registerHook(value);
+    return this.parent.templateModule.registerHook(value);
   }
 
   public getString (str: string):  { str?: string | number, err: null | string, type?: number } | -1 {
@@ -114,7 +109,12 @@ export default class DefscriptCompiler {
         }
         let arg = pair[1].trim();
         let action = pair[0].trim().slice(1);
-        if (action == "import") {
+        if (action == "declare") {
+          const value = undefined;
+          this.compiled[arg] = [value, 1];
+          this.parent.templateModule.addVariable(arg, value, 1);
+          this.parent.declaredVariables.push(arg);
+        } else if (action == "import") {
           const str = this.getString(arg);
           if (str != -1) {
             if (str.err) {
@@ -143,8 +143,8 @@ export default class DefscriptCompiler {
             if (ppair.length != 2) {
               return "Syntax error, function keyword takes one parameter";
             }
-            this.compiled[ppair[1]] = [this.numericName, 2];
-            this.module.addVariable(ppair[1], this.numericName, 2);
+            this.compiled[ppair[1]] = [this.parent.numericName, 2];
+            this.parent.templateModule.addVariable(ppair[1], this.parent.numericName, 2);
             return this.error;
           }
           let pair = line.split("=");
@@ -179,7 +179,7 @@ export default class DefscriptCompiler {
             }
             const type = (dynamic === true ? 1 : 0);
             this.compiled[key] = [value.str, type];
-            this.module.addVariable(key, value.str, type);
+            this.parent.templateModule.addVariable(key, value.str, type);
           }
         }
       }

@@ -4,10 +4,13 @@ import BaseParser from "./base";
 export default class HtmlParser extends BaseParser {
 
   private openHtmlBlock(line: string, kwargs: HtmlKwargs): ParsedLine {
-    return this.getParsedLine(line, null, kwargs, false, false, false);
+    return this.getParsedLine(line, null, kwargs, false, false, false, false);
   }
 
   private fetchId(line: string, args: HtmlKwargs): [string, HtmlKwargs] | string {
+    if (line[0] == "@") {
+      return [line, args];
+    }
     const id = line.split(" ");
 
     if (id.length > 1) {
@@ -23,12 +26,11 @@ export default class HtmlParser extends BaseParser {
       args["id"] = id[1];
       return [id[0], args];
     } else {
-      return [line, args]
+      return [line, args];
     }
   }
 
   private parseElement(line: string, args: HtmlKwargs | null = null): string | -1 {
-
     const pair = this.getKeyValuePair(line);
 
     if (pair == -1) {
@@ -36,7 +38,7 @@ export default class HtmlParser extends BaseParser {
       if (typeof element === "string") {
         return element;
       }
-      this.parsed.push(this.getParsedLine(element[0], null, element[1], false, false, true));
+      this.parsed.push(this.getParsedLine(element[0], null, element[1], false, false, true, false));
       this.openBlocks.push("__reserved");
       this.expectingNoBlock = true;
       return -1;
@@ -53,7 +55,7 @@ export default class HtmlParser extends BaseParser {
     }
 
     this.openBlocks.push(element[0]);
-    this.parsed.push(this.getParsedLine(element[0], pair.value, element[1], false, false, false));
+    this.parsed.push(this.getParsedLine(element[0], pair.value, element[1], false, false, false, pair.dynamic));
     return -1;
   }
 

@@ -60,6 +60,7 @@ export const declareImport = async (filename: string): Promise<true | CompileErr
 export const compileValerian = (filename: string, module: boolean): Promise<CompiledFile | CompileError> => {
   return new Promise(async (resolve) => {
     let compiled: string[] = [];
+    let declaredVariables: string[] = [];
     let numericName: string = "__v" + compileIndex.toString();
     compileIndex++;
 
@@ -70,7 +71,7 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
       numericName += "__RESERVED__VALERIAN__IMPORT:TEMPLATE_IMPORT";
     }
 
-    const comp = new Compiler(path.dirname(filename), filename, numericName);
+    const comp = new Compiler(path.dirname(filename), filename, numericName, module);
     logVerbose(module ? "Import: compiling" : "Compiling", filename, "...");
 
     const readInterface = readline.createInterface({
@@ -91,8 +92,10 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
     }
 
     const nline = comp.endOfFile();
+    // returns [CompiledRegion, string[]]
     if (!compiledWithErrors(nline)) {
-      compiled = compiled.concat(nline.lines);
+      compiled = compiled.concat(nline[0].lines);
+      declaredVariables = nline[1];
       if (!module) {
         compiled.push("</html>");
       }
@@ -103,6 +106,8 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
 
     resolve({
       lines: compiled,
+      declaredVariables,
+      fileName: filename,
       numericName
     });
 

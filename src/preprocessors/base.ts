@@ -4,6 +4,7 @@ import DefscriptCompiler from "../defscript"
 interface KeyValuePair {
   key: string;
   value: null | string;
+  dynamic: boolean;
   error: null | string;
 }
 
@@ -30,11 +31,12 @@ export default class BaseParser {
     this.lineNumber = 0;
   }
 
-  protected getParsedLine(key: string, value: string | null, data: HtmlKwargs | null, raw: boolean, close: boolean, notAttached: boolean, indent: number = this.indentLevel): ParsedLine {
+  protected getParsedLine(key: string, value: string | null, data: HtmlKwargs | null, raw: boolean, close: boolean, notAttached: boolean, dynamic: boolean, indent: number = this.indentLevel): ParsedLine {
     return {
       key,
       value,
       data,
+      dynamic,
       notAttached: notAttached,
       sourceIndex: this.lineNumber,
       indentLevel: indent,
@@ -47,12 +49,14 @@ export default class BaseParser {
     return {
       key: "",
       value: null,
+      dynamic: false,
       error: err
     }
   }
 
   protected getKeyValuePair(str: string): KeyValuePair | -1 {
     let delimiter = str.indexOf(":");
+    let dynamic: boolean = false;
     if (delimiter == -1) {
       return -1;
     }
@@ -65,6 +69,9 @@ export default class BaseParser {
         } else if (str.err !== null) {
           return this.throwError(str.err);
         } else {
+          if (str.type == 1) {
+            dynamic = true;
+          }
           data = str.str.toString();
         }
       }
@@ -74,17 +81,18 @@ export default class BaseParser {
     let clean = str.slice(0, delimiter);
     return {
       key: clean,
+      dynamic,
       value: data != "" ? data : null,
       error: null
     }
   }
 
   protected openBlock(line: string, value: string): ParsedLine {
-    return this.getParsedLine(line, value, null, false, false, false);
+    return this.getParsedLine(line, value, null, false, false, false, false);
   }
 
   protected closeBlock(line: string, indent: number): ParsedLine {
-    return this.getParsedLine(line, null, null, false, true, false, indent);
+    return this.getParsedLine(line, null, null, false, true, false, false, indent);
   }
 
   protected handleFinish(): null | string {
@@ -127,8 +135,8 @@ export default class BaseParser {
     return null;
   }
 
-  protected pushString(str: string): void {
-    this.parsed.push(this.getParsedLine(str, null, null, true, false, false));
+  protected pushString(str: string, dynamic): void {
+    this.parsed.push(this.getParsedLine(str, null, null, true, false, false, dynamic));
     this.openBlocks.push("__reserved");
   }
 
@@ -136,7 +144,7 @@ export default class BaseParser {
     const pair = this.getKeyValuePair(line);
     if (pair == -1) {
       //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, null, false, false, true));
+      this.parsed.push(this.getParsedLine(line, null, null, false, false, true, false));
       this.openBlocks.push("__reserved");
       this.expectingNoBlock = true;
       return null;
@@ -194,7 +202,7 @@ export default class BaseParser {
             if (rawstr.err) {
               this.error = rawstr.err;
             } else {
-              this.pushString(rawstr.str.toString());
+              this.pushString(rawstr.str.toString(), (rawstr.type == 1));
               this.expectingNoBlock = true;
               if (rawstr.type == 2) {
                 this.error = "Unexpected function call"

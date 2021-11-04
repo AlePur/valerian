@@ -36,7 +36,7 @@ const Valerian = new (class Valerian {
 		}
 
 		this.Module = class Module {
-			constructor(parent, filename) {
+			constructor(parent, filename, moduleName) {
 				/*this.__valerian = {
 					__hooks: []
 				}*/
@@ -53,7 +53,7 @@ const Valerian = new (class Valerian {
 				}
 				let hooks = file.hooks;
 				for (let i = 0; i < hooks.length; i++) {
-					this[hooks[i][1]].__addHook(new parent.DynamicHook(hooks[i][0]));
+					this[hooks[i][1]].__addHook(new parent.DynamicHook(moduleName + hooks[i][0]));
 				}
 			}
 	
@@ -63,7 +63,7 @@ const Valerian = new (class Valerian {
 		} 
 	}
 
-	recall(filename) {
-		return new this.Module(this, filename);
+	recall(filename, name = "__manual") {
+		return new this.Module(this, filename, name);
 	}
 })();

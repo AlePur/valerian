@@ -1,1 +1,9 @@
 compiling multiple times bc import
+#local shared
+
+import gets compiled when declared
+-> call and change hook ids and such
+-> can only pass dynamic variables since others are already compiled
+
+import gets compiled when called
+-> compile multiple times

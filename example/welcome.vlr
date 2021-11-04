@@ -1,9 +1,10 @@
 @import increment
 startCount = 5
+dynamic title = "My website"
 
 html:
     head:
-        title: "Test website"
+        title: {title}
     body:
         (Increment
             p:
@@ -11,6 +12,8 @@ html:
                 &startCount
                 ")"
             @increment(&startCount)
+            p: "but this one starts at 3:"
+            @increment(3)
         )
 style:
     Increment:
