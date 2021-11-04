@@ -7,7 +7,7 @@
     "valerian": "node out/index.js example",
     "test": "jest",
     "build": "tsc && npm run copy-static",
-    "copy-static": "cp src/template.js out/valerian_template.js",
+    "copy-static": "cp src/static/template.js out/valerian_template.js && cp src/static/valerian.css out/valerian.css",
     "watch": "tsc --watch"
   },
   "author": "",

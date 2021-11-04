@@ -3,7 +3,7 @@ import CssParser from "./preprocessors/css";
 import BaseParser from "./preprocessors/base";
 
 export const usage = `node index.js <.vlr file or folder>`;
-export const compiledWithErrors = (t: CompiledRegion | CompileError | -1 | string[] | [CompiledRegion, string[]]): t is CompileError => { 
+export const compiledWithErrors = (t: CompiledRegion | CompileError | -1 | -2 | string[] | [CompiledRegion, string[]]): t is CompileError => { 
   return (t as CompileError).message !== undefined;
 };
 export class errorHtml { 
@@ -17,7 +17,7 @@ export class errorHtml {
       </title>
     </head>
     <body>
-      <pre>
+      <pre id="CompileError">
 ${err}
       </pre>
     </body>
@@ -50,7 +50,7 @@ export interface ParsedLine {
   data: HtmlKwargs | null;
   notAttached: boolean;
   sourceIndex: number;
-  dynamic: boolean;
+  valueType: number;
   rawString: boolean;
   scopeClose: boolean;
   indentLevel: number;

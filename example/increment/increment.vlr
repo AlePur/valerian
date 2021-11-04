@@ -6,7 +6,7 @@ function updateButton
 script:
     local.count.update(local.startCount.value)
     local.updateButton = () => {
-        local.count.update(local.count.value + local.startCount.value)
+        local.count.update(local.count.value + 1)
     }
 html:
     (Count
@@ -14,7 +14,4 @@ html:
             "Count is "
             {count}
     )
-    (onclick={updateButton()}) -> button Button: "Click!"
-style:
-    Button: 
-        color: "black"
+    (onclick={updateButton}) -> button Button: "Click!"

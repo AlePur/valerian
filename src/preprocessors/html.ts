@@ -4,7 +4,24 @@ import BaseParser from "./base";
 export default class HtmlParser extends BaseParser {
 
   private openHtmlBlock(line: string, kwargs: HtmlKwargs): ParsedLine {
-    return this.getParsedLine(line, null, kwargs, false, false, false, false);
+    return this.getParsedLine(line, null, kwargs, false, false, false, 0);
+  }
+  
+  private setIdOrClass(args: HtmlKwargs, str: string): HtmlKwargs | string {
+    if (str[0] == ".") {
+      if (args["class"] !== undefined) {
+        args["class"] += " " + str.slice(1, str.length);
+      } else {
+        args["class"] = str.slice(1, str.length);
+      }
+      return args;
+    } else {
+      if (args["id"] !== undefined) {
+        return "Element id is defined in multiple places"
+      }
+      args["id"] = str;
+      return args;
+    }
   }
 
   private fetchId(line: string, args: HtmlKwargs): [string, HtmlKwargs] | string {
@@ -20,11 +37,11 @@ export default class HtmlParser extends BaseParser {
       if (!args) {
         args = {};
       }
-      if (args["id"] !== undefined) {
-        return "Element id is defined in multiple places"
+      let nargs = this.setIdOrClass(args, id[1]);
+      if (typeof nargs === "string") {
+        return nargs;
       }
-      args["id"] = id[1];
-      return [id[0], args];
+      return [id[0], nargs];
     } else {
       return [line, args];
     }
@@ -38,7 +55,7 @@ export default class HtmlParser extends BaseParser {
       if (typeof element === "string") {
         return element;
       }
-      this.parsed.push(this.getParsedLine(element[0], null, element[1], false, false, true, false));
+      this.parsed.push(this.getParsedLine(element[0], null, element[1], false, false, true, 0));
       this.openBlocks.push("__reserved");
       this.expectingNoBlock = true;
       return -1;
@@ -55,7 +72,7 @@ export default class HtmlParser extends BaseParser {
     }
 
     this.openBlocks.push(element[0]);
-    this.parsed.push(this.getParsedLine(element[0], pair.value, element[1], false, false, false, pair.dynamic));
+    this.parsed.push(this.getParsedLine(element[0], pair.value, element[1], false, false, false, pair.valueType));
     return -1;
   }
 
@@ -110,10 +127,11 @@ export default class HtmlParser extends BaseParser {
       } else {
         let id = line.slice(1);
         if (id != "") {
-          if (id[0] !== id[0].toUpperCase()) {
-            return "Element ids are expected to be in PascalCase"
+          let args = this.setIdOrClass({}, id);
+          if (typeof args === "string") {
+            return args;
           }
-          this.parsed.push(this.openHtmlBlock("div", { id }));
+          this.parsed.push(this.openHtmlBlock("div", args));
         } else {
           this.parsed.push(this.openBlock("div", null));
         }

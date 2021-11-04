@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "fs";
 import * as path from "path";
 const template: string[] = readFileSync(path.join(__dirname, "valerian_template.js")).toString().split("\n");
 const injectIndex: number = 3;
+const stylesheet: Buffer = readFileSync(path.join(__dirname, "valerian.css"));
 
 export class Module {
   parent: TemplateManager;
@@ -16,10 +17,10 @@ export class Module {
     this.parent = parent;
   }
 
-  public registerHook(variable: string): string {
+  public registerHook(variable: string, shared: boolean): string {
     this.hooked = true;
     const _class = "-update-" + this.parent.hookCount.toString();
-    this.str += '["' + _class + '", "' + variable + '"],';
+    this.str += '["' + _class + '", "' + variable + '", ' + shared + '],';
     this.parent.hookCount++;
     return _class;
   }
@@ -71,6 +72,7 @@ class TemplateManager {
     this.compiled[this.compiled.length - 1] = tmp.slice(0, tmp.length - 1)
     this.compiled = template.splice(0, injectIndex).concat(this.compiled, template);
     writeFileSync(path.join("./dist", "valerian", "valerian.js"), this.compiled.join("\n"));
+    writeFileSync(path.join("./dist", "valerian", "valerian.css"), stylesheet);
   }
 }
 

@@ -1,0 +1,12 @@
+@export
+@reach number
+
+script:
+    setInterval(() => {
+        local.shared.number.value += 1;
+        local.shared.number.update();
+    }, 100);
+html:
+    p:
+        "The value I have is "
+        {number}

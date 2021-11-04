@@ -122,10 +122,13 @@ export default class Compiler {
     return nline;
   }
 
-  private async parseAsync(line: string): Promise<CompileError | -1> {
+  private async parseAsync(line: string): Promise<CompileError | -1 | -2> {
     let err = await this.preParser.parse(line, this.indentLevel, this.lineNumber);
     if (typeof err === "string") {
       return this.throwError(err, line, this.lineNumber);
+    }
+    if (err === -1) {
+      return -2;
     }
     if (err === null) {
       return -1;
@@ -173,8 +176,12 @@ export default class Compiler {
       } else if (this.region == "js") {
         nline.lines = nline.lines.concat(this.endScript());
       }
-      if (!this.scriptHasBeen) {
-        nline.lines = nline.lines.concat(this.startScript(), this.endScript());
+      if (!this.scriptHasBeen && !this.isImport) {
+        nline.lines = nline.lines.concat(
+          ["\t<script>"],
+          this.valRecall(),
+          ["\t</script>"]
+        );
       }
     } else {
       return nline;
@@ -185,8 +192,8 @@ export default class Compiler {
     return [nline, this.declaredVariables];
   }
 
-  public async compile(line: string): Promise<CompiledRegion | CompileError | -1> {
-    let nline: CompiledRegion | CompileError | -1 = -1;
+  public async compile(line: string): Promise<CompiledRegion | CompileError | -1 | -2> {
+    let nline: CompiledRegion | CompileError | -1 | -2 = -1;
     if ((line[0] == " " || line[0] == "\t") && this.region != "js") {
       if (!this.indent) {
         const regex = /[^ \t]/g;

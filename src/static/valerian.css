@@ -1,0 +1,20 @@
+:root {
+    --v-blue: rgb(42, 126, 165);
+    --v-blue-t: rgba(43, 126, 165, 0.5);
+    --v-white: rgb(221, 235, 236);
+}
+button {
+    transition: outline 0.2s linear;
+    cursor: pointer;
+    background-color: var(--v-blue);
+    color: var(--v-white);
+    border: 4px solid var(--v-blue);
+    border-radius: 5px;
+    font-weight: bold;
+}
+button:focus {
+    outline: var(--v-blue-t) solid 2px;
+}
+#CompileError {
+    color: red;
+}

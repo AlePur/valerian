@@ -25,9 +25,12 @@ export default class HtmlCompiler extends BaseCompiler {
     return "<" + name + " />";
   }
 
-  private checkHook(str: string, dynamic: boolean): string | -1 {
-    if (dynamic) {
-      return this.defscript.registerHook(str.slice(1, str.length - 1));
+  private checkHook(str: string, valueType: number): string | -1 {
+    if (valueType == 2) {
+      return "Unexpected function call";
+    }
+    if (valueType) {
+      return this.defscript.registerHook(str.slice(1, str.length - 1), (valueType == 3 || valueType == 4));
     }
     return -1;
   }
@@ -45,7 +48,7 @@ export default class HtmlCompiler extends BaseCompiler {
     let tmp: string = "";
     tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
     if (obj.rawString) {
-      const hooked = this.checkHook(obj.key, obj.dynamic);
+      const hooked = this.checkHook(obj.key, obj.valueType);
       if (hooked != -1) {
         tmp += this.openTag("span", { "class": this.defscript.parent.numericName + hooked }, true);
       } else {
@@ -96,7 +99,7 @@ export default class HtmlCompiler extends BaseCompiler {
         ];
         script = script.concat(this.defscript.parent.valRecall(importName, _import.fileName));
         for (let i = 0; i < args.length; i++) {
-          script.push("\t\t" + _import.declaredVariables[i] + args[i].toString());
+          script.push("\t\t" + importName + "." + _import.declaredVariables[i] + ".value = " + args[i].toString());
         }
         script.push("\t</script>")
         for (let i = 0; i < script.length; i++) {
@@ -126,7 +129,7 @@ export default class HtmlCompiler extends BaseCompiler {
           tmp += this.closeBlock(obj.key);
         } else {
           if (obj.value !== null) {
-            const hooked = this.checkHook(obj.value, obj.dynamic);
+            const hooked = this.checkHook(obj.value, obj.valueType);
             if (hooked != -1) {
               if (obj.data == null) {
                 obj.data = {};

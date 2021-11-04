@@ -45,6 +45,10 @@ export const declareImport = async (filename: string): Promise<true | CompileErr
   beingCompiled.push(filename);
   const _import = await compileValerian(filename, true);
   if (!compiledWithErrors(_import)) {
+    if (_import == -1) {
+      console.log("Compiler error.");
+      process.exit();
+    }
     imports[filename] = _import;
     for (let i = 0; i < beingCompiled.length; i++) {
       if (filename == beingCompiled[i]) {
@@ -57,7 +61,7 @@ export const declareImport = async (filename: string): Promise<true | CompileErr
   }
 }
 
-export const compileValerian = (filename: string, module: boolean): Promise<CompiledFile | CompileError> => {
+export const compileValerian = (filename: string, module: boolean): Promise<CompiledFile | CompileError | -1> => {
   return new Promise(async (resolve) => {
     let compiled: string[] = [];
     let declaredVariables: string[] = [];
@@ -67,6 +71,7 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
     if (!module) {
       compiled[0] = "<html>";
       compiled[1] = '\t<script src="./valerian.js"></script>';
+      compiled[2] = '\t<link rel="stylesheet" href="./valerian.css" />';
     } else {
       numericName += "__RESERVED__VALERIAN__IMPORT:TEMPLATE_IMPORT";
     }
@@ -82,6 +87,12 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
       const nline = await comp.compile(line);
       if (!compiledWithErrors(nline)) {
         //ON REGION CHANGE
+        if (nline === -2) {
+          if (!module) {
+            return resolve(-1);
+          }
+          continue;
+        }
         if (nline !== -1) {
           compiled = compiled.concat(nline.lines);
         }
@@ -155,6 +166,9 @@ const compileFile = async (filename: string) => {
     let err = new errorHtml(renderError(compiled, false));
     writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", err.html.join("\n"));
     process.exit();
+  }
+  if (compiled === -1) {
+    logVerbose("File is a module, skipping...")
     return;
   }
   writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", compiled.lines.join("\n"));

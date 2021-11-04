@@ -42,8 +42,8 @@ export default class DefscriptCompiler {
     this.parent.templateModule.endRegion();
   }
 
-  public registerHook(value: string): string {
-    return this.parent.templateModule.registerHook(value);
+  public registerHook(value: string, shared: boolean): string {
+    return this.parent.templateModule.registerHook(value, shared);
   }
 
   public getString (str: string):  { str?: string | number, err: null | string, type?: number } | -1 {
@@ -92,12 +92,20 @@ export default class DefscriptCompiler {
     return this.compiled[name];
   }
 
-  public async parse(line: string, indent: number, lineNumber: number): Promise<string | null | CompileError> {
+  public async parse(line: string, indent: number, lineNumber: number): Promise<string | -1 | null | CompileError> {
     this.lineNumber = lineNumber;
     this.error = null;
     //console.log(this.openBlocks)
 
     if (!this.error) {
+      if (line == "@export") {
+        return -1;
+      }
+      if (lineNumber == 1) {
+        if (this.parent.isImport) {
+          return "File not declared for export";
+        }
+      }
       //this.indentLevel = indent;
 
       if (line[0] == " " || line[0] == "\t") {
@@ -110,10 +118,20 @@ export default class DefscriptCompiler {
         let arg = pair[1].trim();
         let action = pair[0].trim().slice(1);
         if (action == "declare") {
+          if (arg == "shared") {
+            return "Reserved keyword 'shared'"
+          }
           const value = undefined;
           this.compiled[arg] = [value, 1];
           this.parent.templateModule.addVariable(arg, value, 1);
           this.parent.declaredVariables.push(arg);
+        } else if (action == "reach") {
+          if (arg == "shared") {
+            return "Reserved keyword 'shared'"
+          }
+          const value = undefined;
+          this.compiled[arg] = [value, 4];
+          this.parent.templateModule.addVariable(arg, value, 4);
         } else if (action == "import") {
           const str = this.getString(arg);
           if (str != -1) {
@@ -138,6 +156,7 @@ export default class DefscriptCompiler {
       } else {
         if (line.trim() != "") {
           let dynamic: boolean = false;
+          let shared: boolean = false;
           let ppair = line.split(" ");
           if (ppair[0] == "function") {
             if (ppair.length != 2) {
@@ -157,8 +176,15 @@ export default class DefscriptCompiler {
             key = splitKey[1];
             dynamic = true;
           }
+          if (splitKey[0] == "shared") {
+            if (splitKey.length != 2) {
+              return "Expected a variable name when declaring a shared variable";
+            }
+            key = splitKey[1];
+            shared = true;
+          }
           if (pair.length != 2 || key == '') {
-            this.error = "Syntax error"
+            this.error = "Syntax error, did you forget to pass the variable a value?"
           } else {
             const str = pair[1].trim();
             let value = this.getString(str);
@@ -177,7 +203,15 @@ export default class DefscriptCompiler {
             if (this.compiled[key] !== undefined) {
               return "Variable redefinition not permitted"
             }
-            const type = (dynamic === true ? 1 : 0);
+            let type: number = 0;
+            if (dynamic) {
+              type = 1;
+            } else if (shared) {
+              type = 3;
+            }
+            if (key == "shared") {
+              return "Reserved keyword 'shared'"
+            }
             this.compiled[key] = [value.str, type];
             this.parent.templateModule.addVariable(key, value.str, type);
           }

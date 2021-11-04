@@ -4,7 +4,7 @@ import DefscriptCompiler from "../defscript"
 interface KeyValuePair {
   key: string;
   value: null | string;
-  dynamic: boolean;
+  valueType: number;
   error: null | string;
 }
 
@@ -31,12 +31,12 @@ export default class BaseParser {
     this.lineNumber = 0;
   }
 
-  protected getParsedLine(key: string, value: string | null, data: HtmlKwargs | null, raw: boolean, close: boolean, notAttached: boolean, dynamic: boolean, indent: number = this.indentLevel): ParsedLine {
+  protected getParsedLine(key: string, value: string | null, data: HtmlKwargs | null, raw: boolean, close: boolean, notAttached: boolean, valueType: number, indent: number = this.indentLevel): ParsedLine {
     return {
       key,
       value,
       data,
-      dynamic,
+      valueType,
       notAttached: notAttached,
       sourceIndex: this.lineNumber,
       indentLevel: indent,
@@ -49,31 +49,30 @@ export default class BaseParser {
     return {
       key: "",
       value: null,
-      dynamic: false,
+      valueType: 0,
       error: err
     }
   }
 
   protected getKeyValuePair(str: string): KeyValuePair | -1 {
     let delimiter = str.indexOf(":");
-    let dynamic: boolean = false;
+    if (delimiter == 0) {
+      delimiter = str.slice(1, str.length).indexOf(":") + 1;
+    }
+    let valueType: number = 0;
     if (delimiter == -1) {
       return -1;
     }
     let data = str.slice(delimiter+1).trim();
-    if (data) {
-      if (data[0] !== "") {
-        let str = this.defscript.getString(data);
-        if (str == -1) {
-          return this.throwError("Expected a string");
-        } else if (str.err !== null) {
-          return this.throwError(str.err);
-        } else {
-          if (str.type == 1) {
-            dynamic = true;
-          }
-          data = str.str.toString();
-        }
+    if (data && data != "") {
+      let str = this.defscript.getString(data);
+      if (str == -1) {
+        return this.throwError("Expected a string");
+      } else if (str.err !== null) {
+        return this.throwError(str.err);
+      } else {
+        valueType = str.type;
+        data = str.str.toString();
       }
     } else {
       this.expectingBlock = true;
@@ -81,18 +80,18 @@ export default class BaseParser {
     let clean = str.slice(0, delimiter);
     return {
       key: clean,
-      dynamic,
+      valueType,
       value: data != "" ? data : null,
       error: null
     }
   }
 
   protected openBlock(line: string, value: string): ParsedLine {
-    return this.getParsedLine(line, value, null, false, false, false, false);
+    return this.getParsedLine(line, value, null, false, false, false, 0);
   }
 
   protected closeBlock(line: string, indent: number): ParsedLine {
-    return this.getParsedLine(line, null, null, false, true, false, false, indent);
+    return this.getParsedLine(line, null, null, false, true, false, 0, indent);
   }
 
   protected handleFinish(): null | string {
@@ -135,8 +134,8 @@ export default class BaseParser {
     return null;
   }
 
-  protected pushString(str: string, dynamic): void {
-    this.parsed.push(this.getParsedLine(str, null, null, true, false, false, dynamic));
+  protected pushString(str: string, valueType: number): void {
+    this.parsed.push(this.getParsedLine(str, null, null, true, false, false, valueType));
     this.openBlocks.push("__reserved");
   }
 
@@ -144,7 +143,7 @@ export default class BaseParser {
     const pair = this.getKeyValuePair(line);
     if (pair == -1) {
       //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, null, false, false, true, false));
+      this.parsed.push(this.getParsedLine(line, null, null, false, false, true, 0));
       this.openBlocks.push("__reserved");
       this.expectingNoBlock = true;
       return null;
@@ -202,7 +201,7 @@ export default class BaseParser {
             if (rawstr.err) {
               this.error = rawstr.err;
             } else {
-              this.pushString(rawstr.str.toString(), (rawstr.type == 1));
+              this.pushString(rawstr.str.toString(), rawstr.type);
               this.expectingNoBlock = true;
               if (rawstr.type == 2) {
                 this.error = "Unexpected function call"
