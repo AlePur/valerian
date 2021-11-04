@@ -1,0 +1,34 @@
+@import increment
+startCount = 5
+dynamic title = "My website"
+
+html:
+    head:
+        title: {title}
+    body:
+        (Increment
+            (.block
+                p:
+                    "Look at my increment module! (it starts counting at "
+                    &startCount
+                    ")"
+                @increment(&startCount)
+            )
+            (.block
+                p: "but this one starts at 3:"
+                @increment(3)
+            )
+        )
+style:
+    Increment:
+        margin: "30px"
+        :first-child:
+            margin-bottom: "5px"
+        .block:
+            background-color: "green"
+            border-radius: "5px"
+            padding: "20px"
+        font-size: "15px"
+        background-color: "beige"
+        padding: "10px"
+        border-radius: "20px"

@@ -2,6 +2,10 @@
   "compilerOptions": {
     "target": "es2017",
     "module": "commonjs",
-    "outDir": "out"
-  }
+    "outDir": "out",
+    "rootDir": "src",
+  },
+  "include": [
+    "src/**/*"
+  ]
 }

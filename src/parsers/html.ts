@@ -1,127 +1,166 @@
 import { ParsedLine, HtmlKwargs } from "../header";
-import BaseParser from "./base";
+import BaseCompiler from "./base";
+import DefscriptCompiler from "../defscript"
+import { fetchImport } from "../index";
+import HtmlParser from "../preprocessors/html";
 
-export default class HtmlParser extends BaseParser {
-
-  private openHtmlBlock(line: string, kwargs: HtmlKwargs): ParsedLine {
-    return this.getParsedLine(line, null, kwargs, false, false, false);
+export default class HtmlCompiler extends BaseCompiler {
+  defscript: DefscriptCompiler
+  
+  constructor(pparser: DefscriptCompiler) {
+    super();
+    this.parser = new HtmlParser(pparser);
+    this.defscript = pparser;
   }
 
-  private checkConstants(line: string): string | null | -1 {
-    const len = this.parsed.length;
+  protected openBlock(name: string): string {
+    return "<" + name + ">";
+  }
 
-    if (line[0] == "(") {
-      // either div or (params) ->
-      const p = line.split("->");
-      if (p.length > 1) {
-        let params = p[0].trim();
-        const key = p[1].trim();
-        if (params[0] != "(" && params[params.length - 1] != ")") {
-          return "Expected paranthesis around element parameters";
-        }
-        params = params.slice(1, params.length - 1);
-        const blocks = params.split(",");
-        let pairs: HtmlKwargs = {}
-        for (let i = 0; i < blocks.length; i++) {
-          let x = blocks[i].split("=")
-          if (x.length != 2) {
-            return "Error parsing element parameters";
-          }
-          pairs[x[0].trim()] = x[1].trim();
-        }
+  protected closeBlock(name: string): string {
+    return "</" + name + ">";
+  }
 
-        const rawstr = this.getString(line);
+  protected openIndependentBlock(name: string): string {
+    return "<" + name + " />";
+  }
 
-        const pair = this.getKeyValuePair(key);
-        if (pair == -1) {
-          return "A string takes no parameters"
-        }
+  private checkHook(str: string, valueType: number): string | -1 {
+    if (valueType == 2) {
+      return "Unexpected function call";
+    }
+    if (valueType) {
+      return this.defscript.registerHook(str.slice(1, str.length - 1), (valueType == 3 || valueType == 4));
+    }
+    return -1;
+  }
+  
+  private openTag(name: string, kwargs: HtmlKwargs, closing: boolean = false): string {
+    let values = "";
+    for (const [key, value] of Object.entries(kwargs)) {
+      if (!value) continue;
+      values += ` ${key}="${value}"`;
+    }
+    return "<" + name + values + (closing ? ' /' : '') + ">";
+  }
 
-        if (pair.error !== null) {
-          return pair.error;
-        }
-
-        const id = pair.key.split(" ");
-
-        if (id.length > 1) {
-          this.openBlocks.push(id[0]);
-          if (id[1][0] !== id[1][0].toUpperCase()) {
-            return "Element ids are expected to be in PascalCase"
-          }
-          pairs["id"] = id[1];
-          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
-        } else {
-          this.openBlocks.push(pair.key);
-          this.parsed.push(this.getParsedLine(id[0], pair.value, pairs, false, false, false));
-        }
-        return -1;
+  protected compileLine(obj: ParsedLine): null | string {
+    let tmp: string = "";
+    tmp += "\t".repeat(obj.indentLevel + this.baseIndent);
+    if (obj.rawString) {
+      const hooked = this.checkHook(obj.key, obj.valueType);
+      if (hooked != -1) {
+        tmp += this.openTag("span", { "class": this.defscript.parent.numericName + hooked }, true);
       } else {
-        let id = line.slice(1);
-        if (id != "") {
-          if (id[0] !== id[0].toUpperCase()) {
-            return "Element ids are expected to be in PascalCase"
-          }
-          this.parsed.push(this.openHtmlBlock("div", { id }));
-        } else {
-          this.parsed.push(this.openBlock("div", null));
-        }
-        this.openBlocks.push("_reserved");
-        return -1;
+        tmp += this.stringBlock(obj.key);
       }
-    } else if (line[0] == ")") {
-      this.ignoreLine = true;
-      this.parsed[len] = this.closeBlock("div", this.indentLevel);
-      let check = 0;
-      for (let i = (this.openBlocks.length - 1); i >= 0; i--) {
-        if (this.openBlocks[i] == "_reserved") {
-          this.openBlocks.splice(i, 1);
-          check = 1;
-          break;
-        }
-      }
-      if (check == 0) {
-        return "Unexpected paranthesis"
-      }
-      return -1;
-    }
-    return null;
-  }
-
-  protected handleLine(line: string): null | string {
-    const constants = this.checkConstants(line);
-    if (constants == -1) {
-      return null;
-    }
-    if (typeof constants === 'string') {
-      return constants;
-    }
-
-    const pair = this.getKeyValuePair(line);
-    if (pair == -1) {
-      //not really a string, you will see
-      this.parsed.push(this.getParsedLine(line, null, null, false, false, true));
-      this.openBlocks.push("__reserved");
-      this.expectingNoBlock = true;
-      return null;
-    }
-
-    if (pair.error !== null) {
-      return pair.error;
-    }
-
-    const id = pair.key.split(" ");
-
-    if (id.length > 1) {
-      this.openBlocks.push(id[0]);
-      if (id[1][0] !== id[1][0].toUpperCase()) {
-        return "Element ids are expected to be in PascalCase"
-      }
-      this.parsed.push(this.getParsedLine(id[0], pair.value, { id: id[1] }, false, false, false));
     } else {
-      this.openBlocks.push(pair.key);
-      this.parsed.push(this.openBlock(pair.key, pair.value));
-    }
+      if (obj.key[0] == "@") {
+        let name: string = obj.key.slice(1);
+        let args: Array<string | number> = [];
+        let index = name.indexOf("(");
+        if (index != -1) {
+          if (name[name.length - 1] != ")") {
+            return "Unexpected end of line, expected a closing paranthesis"
+          }
+          let argstr = name.slice(index + 1, name.length - 1);
+          name = name.slice(0, index);
+          if (argstr != "") {
+            let _args = argstr.split(",");
+            for (let i = 0; i < _args.length; i++) {
+              const value = _args[i].trim();
+              let str = this.defscript.getString(value);
+              if (str == -1) {
+                if (parseInt(value).toString() != value) {
+                  return "Unexpected non-numeric argument, use quotes to pass a string"
+                }
+                str = { err: null, str: value }
+              }
+              if (str.err) {
+                return str.err;
+              }
+              args.push(str.str);
+            }
+          }
+        }
 
+        const _import = fetchImport(this.defscript.getAbsolutePath(name));
+        const importName = this.defscript.registerImport();
+        const addIndent = "\t".repeat((obj.indentLevel - 1) + this.baseIndent);
+        if (_import == undefined) {
+          return "Accessing undefined import";
+        }
+        if (_import.declaredVariables.length != args.length) {
+          let _a = _import.declaredVariables.length + " argument" + (_import.declaredVariables.length == 1 ? '' : 's');
+          return "Expected " + _a + " but got " + args.length;
+        }
+        let script: string[] = [
+          "\t<script>"
+        ];
+        script = script.concat(this.defscript.parent.valRecall(importName, _import.fileName));
+        for (let i = 0; i < args.length; i++) {
+          script.push("\t\t" + importName + "." + _import.declaredVariables[i] + ".value = " + args[i].toString());
+        }
+        script.push("\t</script>")
+        for (let i = 0; i < script.length; i++) {
+          script[i] = addIndent + script[i];
+        }
+        this.compiled = this.compiled.concat(script);
+        for (let i = 0; i < _import.lines.length; i++) {
+          this.compiled.push(addIndent + _import.lines[i].replace(_import.numericName, importName));
+        }
+        return null;
+      }
+      if (obj.notAttached) {
+        if (obj.data) {
+          tmp += this.openTag(obj.key, obj.data, true);
+        } else {
+          tmp += this.openIndependentBlock(obj.key);
+        }
+        if (obj.value !== null) {
+          return "IMpossible case! Look for yourself"
+          // this.compiled.push(tmp);
+          // tmp = "";
+          // tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+          // tmp += this.stringBlock(obj.value);
+        }
+      } else {
+        if (obj.scopeClose) {
+          tmp += this.closeBlock(obj.key);
+        } else {
+          if (obj.value !== null) {
+            const hooked = this.checkHook(obj.value, obj.valueType);
+            if (hooked != -1) {
+              if (obj.data == null) {
+                obj.data = {};
+              }
+              const className = this.defscript.parent.numericName + hooked;
+              if (obj.data["class"]) {
+                obj.data["class"] += " " + className
+              } else {
+                obj.data["class"] = className;
+              }
+            }
+            if (obj.data) {
+              tmp += this.openTag(obj.key, obj.data);
+            } else {
+              tmp += this.openBlock(obj.key);
+            }
+            this.compiled.push(tmp);
+            tmp = "";
+            tmp += "\t".repeat(obj.indentLevel + 1 + this.baseIndent);
+            tmp += this.stringBlock(obj.value);
+          } else {
+            if (obj.data) {
+              tmp += this.openTag(obj.key, obj.data);
+            } else {
+              tmp += this.openBlock(obj.key);
+            }
+          }
+        }
+      }
+    }
+    this.compiled.push(tmp);
     return null;
   }
 }

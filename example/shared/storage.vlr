@@ -1,0 +1,8 @@
+@import child
+shared number = 4
+
+html:
+    span:
+        "My value is "
+        {number}
+    @child

@@ -1,0 +1,17 @@
+#startCount is dynamic
+@declare startCount
+dynamic count = 0
+function updateButton
+
+script:
+    local.count.update(local.startCount.value)
+    local.updateButton = () => {
+        local.count.update(local.count.value + 1)
+    }
+html:
+    (Count
+        p: 
+            "Count is "
+            {count}
+    )
+    (onclick={updateButton}) -> button Button: "Click!"
