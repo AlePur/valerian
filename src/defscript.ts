@@ -32,8 +32,8 @@ export default class DefscriptCompiler {
   }
  
   public getAbsolutePath(filename: string): string {
-    if (filename.indexOf(".vlr") == -1) {
-      filename += ".vlr"
+    if (filename.indexOf(".val") == -1) {
+      filename += ".val"
     }
     return path.join(this.parent.directory, filename);
   }
@@ -92,19 +92,14 @@ export default class DefscriptCompiler {
     return this.compiled[name];
   }
 
-  public async parse(line: string, indent: number, lineNumber: number): Promise<string | -1 | null | CompileError> {
+  public async parse(line: string, indent: number, lineNumber: number): Promise<string | null | CompileError> {
     this.lineNumber = lineNumber;
     this.error = null;
     //console.log(this.openBlocks)
 
     if (!this.error) {
       if (line == "@export") {
-        return -1;
-      }
-      if (lineNumber == 1) {
-        if (this.parent.isImport) {
-          return "File not declared for export";
-        }
+        return "Unexpected export keyword"
       }
       //this.indentLevel = indent;
 

@@ -1,12 +1,10 @@
 <svg fill="none" viewBox="0 0 800 90" width="100%" height="90" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <style type="text/css">
-    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@500');
-    </style>
   </defs>
   <foreignObject width="100%" height="90">
     <div xmlns="http://www.w3.org/1999/xhtml">
       <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lato');
         #s_wrap {
           display: flex; 
           justify-content: center;
@@ -14,7 +12,7 @@
         #s_title {
           font-size: 70px; 
           text-align: center;
-          font-family: 'Nunito', sans-serif;
+          font-family: 'Lato', sans-serif;
           background-image: linear-gradient(45deg, #a0da3a, #496d21);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent; 

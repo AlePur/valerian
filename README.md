@@ -8,7 +8,7 @@
 <b>Zero dependencies.</b> 
 </div>
 
-## hello.vlr
+## hello.val
 ```php
 html:
     head:

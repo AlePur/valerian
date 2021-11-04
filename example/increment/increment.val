@@ -1,3 +1,4 @@
+@export
 #startCount is dynamic
 @declare startCount
 dynamic count = 0

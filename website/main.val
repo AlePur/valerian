@@ -1,0 +1,15 @@
+html:
+  head:
+    title: "Valerian.js"
+  body:
+    (Title
+      (Header
+        h1: "Valerian.js"
+      )
+    )
+style:
+  Title:
+    display: "flex"
+    justify-content: "center"
+    Header:
+      margin: "auto"

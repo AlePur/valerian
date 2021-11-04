@@ -6,6 +6,8 @@ import { lstatSync, existsSync, createReadStream, writeFileSync, mkdirSync, read
 import * as readline from "readline";
 import * as path from "path";
 
+let verbose = false;
+
 const renderError = (comerror: CompileError, console: boolean): string => {
   let err = (console ? Color.FgBlack + Color.BgRed : '') + "Failed:" + (console ? Color.Reset : '');
   err += "\n\t" + (console ? Color.FgRed : '') + comerror.message + ":" + (console ? Color.Reset : '') + "\n";
@@ -25,6 +27,7 @@ const beingCompiled: string[] = [];
 let compileIndex = 0;
 
 const logVerbose = (...str: string[]): void => {
+  if (!verbose) return;
   console.log(...str);
 };
 
@@ -76,6 +79,8 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
       numericName += "__RESERVED__VALERIAN__IMPORT:TEMPLATE_IMPORT";
     }
 
+    //TODO: better way to do this so that you don't create a new Compiler
+
     const comp = new Compiler(path.dirname(filename), filename, numericName, module);
     logVerbose(module ? "Import: compiling" : "Compiling", filename, "...");
 
@@ -83,22 +88,29 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
       input: createReadStream(filename)
     });
 
-    for await (const line of readInterface) {
-      const nline = await comp.compile(line);
-      if (!compiledWithErrors(nline)) {
-        //ON REGION CHANGE
-        if (nline === -2) {
+    let lineNumber = 0;
+    for await (let line of readInterface) {
+      if (lineNumber == 0) {
+        if (line == "@export") {
           if (!module) {
             return resolve(-1);
           }
-          continue;
+          line = "";
+        } else {
+          if (module) {
+            return resolve(comp.throwError("Expected '@export' to be the first line of an imported module", line, 0));
+          }
         }
+      }
+      lineNumber++;
+      const nline = await comp.compile(line);
+      if (!compiledWithErrors(nline)) {
+        //ON REGION CHANGE
         if (nline !== -1) {
           compiled = compiled.concat(nline.lines);
         }
       } else {
-        resolve(nline);
-        return;
+        return resolve(nline);
       }
     }
 
@@ -111,8 +123,7 @@ export const compileValerian = (filename: string, module: boolean): Promise<Comp
         compiled.push("</html>");
       }
     } else {
-      resolve(nline);
-      return;
+      return resolve(nline);
     }
 
     resolve({
@@ -164,14 +175,14 @@ const compileFile = async (filename: string) => {
   if (compiledWithErrors(compiled)) {
     console.log(renderError(compiled, true));
     let err = new errorHtml(renderError(compiled, false));
-    writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", err.html.join("\n"));
+    writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.val')) + ".html", err.html.join("\n"));
     process.exit();
   }
   if (compiled === -1) {
-    logVerbose("File is a module, skipping...")
+    logVerbose(filename + " is a module, skipping...")
     return;
   }
-  writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.vlr')) + ".html", compiled.lines.join("\n"));
+  writeFileSync(path.join("./dist", "valerian", path.basename(filename, '.val')) + ".html", compiled.lines.join("\n"));
 }
 
 
@@ -179,6 +190,9 @@ const compileFile = async (filename: string) => {
   const arg: string[] = process.argv.slice(2);
   if (!arg[0]) {
     return console.log(usage);
+  }
+  if (arg[1] == "--verbose" || arg[1] == "-v") {
+    verbose = true;
   }
   try {
     mkdirSync("./dist");
@@ -215,7 +229,7 @@ const compileFile = async (filename: string) => {
     const files = readdirSync(arg[0]);
     files.forEach((file) => {
       const fullPath = path.join(arg[0], file);
-      if (file.slice(file.length - 4) == ".vlr") {
+      if (file.slice(file.length - 4) == ".val") {
         promiseList.push(compileFile(fullPath));
       } else {
         logVerbose("Omitting file", fullPath, "...")

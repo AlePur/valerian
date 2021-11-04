@@ -8,27 +8,28 @@ html:
     body:
         (Increment
             (.block
-                p:
+                span:
                     "Look at my increment module! (it starts counting at "
                     &startCount
                     ")"
                 @increment(&startCount)
             )
             (.block
-                p: "but this one starts at 3:"
+                span: "but this one starts at 3:"
                 @increment(3)
             )
         )
 style:
     Increment:
         margin: "30px"
-        :first-child:
-            margin-bottom: "5px"
+        width: "400px"
         .block:
-            background-color: "green"
+            background-color: "var(--v-white)"
             border-radius: "5px"
             padding: "20px"
+            <-first-child:
+                margin-bottom: "10px"
         font-size: "15px"
-        background-color: "beige"
+        background-color: "var(--v-yellow)"
         padding: "10px"
-        border-radius: "20px"
+        border-radius: "10px"

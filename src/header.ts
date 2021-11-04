@@ -2,7 +2,7 @@ import HtmlParser from "./preprocessors/html";
 import CssParser from "./preprocessors/css";
 import BaseParser from "./preprocessors/base";
 
-export const usage = `node index.js <.vlr file or folder>`;
+export const usage = `node index.js <.val file or folder> [--verbose]`;
 export const compiledWithErrors = (t: CompiledRegion | CompileError | -1 | -2 | string[] | [CompiledRegion, string[]]): t is CompileError => { 
   return (t as CompileError).message !== undefined;
 };
@@ -15,11 +15,25 @@ export class errorHtml {
       <title>
         Compilation error
       </title>
+      <style>
+        #ErrorWrap {
+          display: flex;
+        }
+        #CompileError {
+          background-color: #f004;
+          padding: 20px 40px;
+          border: solid #f009 3px;
+          border-radius: 5px;
+          font-size: 20px;
+        }
+      </style>
     </head>
     <body>
-      <pre id="CompileError">
-${err}
-      </pre>
+      <div id="ErrorWrap">
+        <div id="CompileError">
+          <pre>${err}</pre>
+        </div>
+      </div>
     </body>
   </html>`).split("\n");
   }

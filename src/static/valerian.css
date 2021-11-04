@@ -1,20 +1,23 @@
+@import url('https://fonts.googleapis.com/css2?family=Lato&display=swap');
 :root {
-    --v-blue: rgb(42, 126, 165);
-    --v-blue-t: rgba(43, 126, 165, 0.5);
-    --v-white: rgb(221, 235, 236);
+    --v-blue: #1B6FAB;
+    --v-blue-t: #1B6FABa0;
+    --v-white: #F0F6FA;
+    --v-yellow: #F1E1A7;
+}
+html {
+    font-family: 'Lato', sans-serif;
 }
 button {
-    transition: outline 0.2s linear;
+    transition: outline-width 0.05s linear;
     cursor: pointer;
     background-color: var(--v-blue);
     color: var(--v-white);
     border: 4px solid var(--v-blue);
+    outline: var(--v-blue-t) solid 0px;
     border-radius: 5px;
     font-weight: bold;
 }
 button:focus {
-    outline: var(--v-blue-t) solid 2px;
-}
-#CompileError {
-    color: red;
+    outline-width: 2px;
 }

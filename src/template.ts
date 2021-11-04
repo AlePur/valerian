@@ -68,9 +68,13 @@ class TemplateManager {
 
   public write(): void {
     // remove comma
-    const tmp = this.compiled[this.compiled.length - 1];
-    this.compiled[this.compiled.length - 1] = tmp.slice(0, tmp.length - 1)
-    this.compiled = template.splice(0, injectIndex).concat(this.compiled, template);
+    if (this.compiled.length) {
+      const tmp = this.compiled[this.compiled.length - 1];
+      this.compiled[this.compiled.length - 1] = tmp.slice(0, tmp.length - 1)
+      this.compiled = template.splice(0, injectIndex).concat(this.compiled, template);
+    } else {
+      this.compiled = template;
+    }
     writeFileSync(path.join("./dist", "valerian", "valerian.js"), this.compiled.join("\n"));
     writeFileSync(path.join("./dist", "valerian", "valerian.css"), stylesheet);
   }
@@ -78,4 +82,4 @@ class TemplateManager {
 
 export default new TemplateManager();
 
-//"main.vlr":{variables: [["red", "red"]]}
+//"main.val":{variables: [["red", "red"]]}

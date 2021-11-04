@@ -56,8 +56,8 @@ export default class BaseParser {
 
   protected getKeyValuePair(str: string): KeyValuePair | -1 {
     let delimiter = str.indexOf(":");
-    if (delimiter == 0) {
-      delimiter = str.slice(1, str.length).indexOf(":") + 1;
+    if (str.slice(0, 2) == "<-") {
+      delimiter = str.slice(4, str.length).indexOf(":") + 4;
     }
     let valueType: number = 0;
     if (delimiter == -1) {

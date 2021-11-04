@@ -1,0 +1,9 @@
+color = "black"
+
+html:
+	(Wrap
+		button Button: "Click"
+		p: 
+			"Color will be:"
+			&color
+	)

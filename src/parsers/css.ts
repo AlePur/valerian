@@ -50,6 +50,22 @@ export default class CssCompiler extends BaseCompiler {
     }
   }
 
+  private joinScope(): string {
+    let strScope = "";
+    for (let i = 0; i < this.scope.length; i++) {
+      for (let j = 0; j < this.scope[i].length; j++) {
+        let _s = this.scope[i][j];
+        if (_s.slice(0, 2) != "<-") {
+          strScope += _s + " ";
+        } else {
+          strScope = strScope.slice(0, strScope.length - 1);
+          strScope += ":" + _s.slice(2, _s.length) + " ";
+        }
+      }
+    }
+    return strScope;
+  }
+
   protected closeBlock(name: string): string {
     return "}";
   }
@@ -72,10 +88,7 @@ export default class CssCompiler extends BaseCompiler {
     }
 
     if (obj.rawString) {
-      let strScope = ""
-      for (let i = 0; i < this.scope.length; i++) {
-        strScope += this.scope[i].join(" ") + " ";
-      }
+      let strScope = this.joinScope();
       if (!strScope || strScope == "") {
         return "Unexpected string";
       }
@@ -94,6 +107,7 @@ export default class CssCompiler extends BaseCompiler {
       tmp += ";";
       this.stringOnlyBlock = true;
     } else {
+      let selfTarget: boolean = false;
       if (obj.scopeClose) {
         this.scope.pop();
       } else {
@@ -102,6 +116,19 @@ export default class CssCompiler extends BaseCompiler {
             return "#";
           }
           return ""; 
+        }
+
+        if (obj.key.slice(0, 2) == "<-") {
+          selfTarget = true;
+          if (obj.key[2] == " ") {
+            obj.key = obj.key.slice(3, obj.key.length);
+          } else {
+            obj.key = obj.key.slice(2, obj.key.length);
+          }
+          if (obj.key[0] == ":") {
+            obj.key = obj.key.slice(1, obj.key.length);
+          }
+          obj.key = "<-" + obj.key;
         }
         
         let keyArray = (obj.key).split(".");
@@ -120,13 +147,16 @@ export default class CssCompiler extends BaseCompiler {
           key[i] += keyArray[i];
         }
 
-        let strScope = ""
-        for (let i = 0; i < this.scope.length; i++) {
-          strScope += this.scope[i].join(" ") + " ";
-        }
+        let strScope = this.joinScope();
         if (key.length > 1) {
           for (let i = 0; i < key.length - 1; i++) {
-            strScope += key[i] + " ";
+            const _s = key[i];
+            if (_s.slice(0, 2) != "<-") {
+              strScope += _s + " ";
+            } else {
+              strScope = strScope.slice(0, strScope.length - 1);
+              strScope += ":" + _s.slice(2, _s.length) + " ";
+            }
           }
         }
 

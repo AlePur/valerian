@@ -5,9 +5,9 @@ const path = require("path");
 
 describe("Compile vlr", () => {
   const output = fs.readFileSync(path.join(__dirname, "test.html"));
-  test("it should compile test.vlr correctly", async () => {
+  test("it should compile test.val correctly", async () => {
     await new Promise((resolve, reject) => {
-      exec("node out/index.js tests/test.vlr", () => {
+      exec("node out/index.js tests/test.val", () => {
         try {
           const generatedOutput = fs.readFileSync("dist/test.html").toString();
           expect(output.toString()).toStrictEqual(generatedOutput);
